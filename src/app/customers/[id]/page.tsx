@@ -39,13 +39,26 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
     setSavingMemo(false);
   };
 
+  const handleDeleteCustomer = async () => {
+    const activeCount = receptions.filter(r => r.customer_id === id && r.status !== '完了' && r.status !== 'キャンセル').length;
+    const msg = activeCount > 0
+      ? `この顧客には進行中の受付が${activeCount}件あります。顧客と関連する受付をすべて削除しますか？`
+      : 'この顧客を削除しますか？関連する受付もすべて削除されます。';
+    if (!confirm(msg)) return;
+    await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    router.push('/customers');
+  };
+
   if (!customer) return <div className="text-center py-12 text-gray-400 text-sm">読み込み中...</div>;
 
   return (
     <div className="space-y-5 max-w-2xl">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">顧客詳細</h1>
-        <button onClick={() => router.back()} className="text-xs text-gray-500 hover:text-gray-700">← 戻る</button>
+        <div className="flex items-center gap-3">
+          <button onClick={handleDeleteCustomer} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">顧客を削除</button>
+          <button onClick={() => router.back()} className="text-xs text-gray-500 hover:text-gray-700">← 戻る</button>
+        </div>
       </div>
 
       {/* Customer info */}

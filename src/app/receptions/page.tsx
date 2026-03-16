@@ -32,6 +32,12 @@ export default function ReceptionsPage() {
     load();
   };
 
+  const handleDelete = async (id: string, customerName: string) => {
+    if (!confirm(`${customerName} の受付を削除しますか？`)) return;
+    await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
+    load();
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -148,6 +154,13 @@ export default function ReceptionsPage() {
                     <option value="完了">完了</option>
                     <option value="キャンセル">キャンセル</option>
                   </select>
+                  <button
+                    onClick={() => handleDelete(r.id, r.customer_name)}
+                    className="text-xs text-red-400 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+                    title="削除"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             </div>

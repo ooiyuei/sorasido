@@ -93,6 +93,16 @@ export function updateCustomer(id: string, data: Partial<Pick<Customer, 'name' |
   Object.assign(c, data, { updated_at: now() });
   return { ...c };
 }
+export function deleteCustomer(id: string): boolean {
+  const idx = customers.findIndex(c => c.id === id); if (idx === -1) return false;
+  customers.splice(idx, 1);
+  // 関連する受付も削除
+  const relatedReceptionIds = receptions.filter(r => r.customer_id === id).map(r => r.id);
+  receptions = receptions.filter(r => r.customer_id !== id);
+  receptionItems = receptionItems.filter(ri => !relatedReceptionIds.includes(ri.reception_id));
+  recalcReserved();
+  return true;
+}
 
 // --- Varieties CRUD ---
 export function getVarieties(): Variety[] { return varieties.filter(v => v.is_active).map(v => ({ ...v })); }

@@ -9,10 +9,7 @@ export default function CustomersPage() {
   const [receptions, setReceptions] = useState<Reception[]>([]);
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetch('/api/customers').then(r => r.json()).then(setCustomers);
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
-  }, []);
+  useEffect(() => { load(); }, []);
 
   const filtered = customers.filter(c =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -27,6 +24,21 @@ export default function CustomersPage() {
       .filter(r => r.customer_id === customerId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
     return customerReceptions.length > 0 ? customerReceptions[0].desired_date || customerReceptions[0].created_at.split('T')[0] : '-';
+  };
+
+  const load = () => {
+    fetch('/api/customers').then(r => r.json()).then(setCustomers);
+    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+  };
+
+  const handleDelete = async (c: Customer) => {
+    const count = getReceptionCount(c.id);
+    const msg = count > 0
+      ? `${c.name} を削除しますか？関連する受付${count}件もすべて削除されます。`
+      : `${c.name} を削除しますか？`;
+    if (!confirm(msg)) return;
+    await fetch(`/api/customers/${c.id}`, { method: 'DELETE' });
+    load();
   };
 
   return (
@@ -60,9 +72,16 @@ export default function CustomersPage() {
                     )}
                   </div>
                 </div>
-                <div className="flex items-center gap-4 shrink-0 text-sm text-gray-500">
+                <div className="flex items-center gap-3 shrink-0 text-sm text-gray-500">
                   <span>受付 {count}件</span>
                   <span>最終: {lastDate}</span>
+                  <button
+                    onClick={(e) => { e.preventDefault(); handleDelete(c); }}
+                    className="text-xs text-red-400 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+                    title="削除"
+                  >
+                    ✕
+                  </button>
                 </div>
               </div>
             </div>
