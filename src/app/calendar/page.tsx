@@ -17,24 +17,29 @@ export default function CalendarPage() {
   const [year, month] = currentMonth.split('-').map(Number);
 
   const calendarDays = useMemo(() => {
+    const fmt = (y: number, m: number, d: number) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     const firstDay = new Date(year, month - 1, 1);
     const lastDay = new Date(year, month, 0);
     const startPad = firstDay.getDay();
-    const days: { date: string; day: number; isCurrentMonth: boolean }[] = [];
-    for (let i = startPad - 1; i >= 0; i--) {
-      const d = new Date(year, month - 1, -i);
-      days.push({ date: d.toISOString().split('T')[0], day: d.getDate(), isCurrentMonth: false });
+    const prevLastDay = new Date(year, month - 1, 0).getDate();
+    const days: { key: string; date: string; day: number; isCurrentMonth: boolean }[] = [];
+    const prevM = month === 1 ? 12 : month - 1;
+    const prevY = month === 1 ? year - 1 : year;
+    for (let i = 0; i < startPad; i++) {
+      const d = prevLastDay - startPad + 1 + i;
+      const date = fmt(prevY, prevM, d);
+      days.push({ key: `p-${date}`, date, day: d, isCurrentMonth: false });
     }
     for (let d = 1; d <= lastDay.getDate(); d++) {
-      const date = `${year}-${String(month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-      days.push({ date, day: d, isCurrentMonth: true });
+      const date = fmt(year, month, d);
+      days.push({ key: date, date, day: d, isCurrentMonth: true });
     }
-    const remaining = 7 - (days.length % 7);
-    if (remaining < 7) {
-      for (let d = 1; d <= remaining; d++) {
-        const date = new Date(year, month, d);
-        days.push({ date: date.toISOString().split('T')[0], day: d, isCurrentMonth: false });
-      }
+    const nextM = month === 12 ? 1 : month + 1;
+    const nextY = month === 12 ? year + 1 : year;
+    const remaining = days.length % 7 === 0 ? 0 : 7 - (days.length % 7);
+    for (let d = 1; d <= remaining; d++) {
+      const date = fmt(nextY, nextM, d);
+      days.push({ key: `n-${date}`, date, day: d, isCurrentMonth: false });
     }
     return days;
   }, [year, month]);
@@ -91,13 +96,13 @@ export default function CalendarPage() {
               ))}
             </div>
             <div className="grid grid-cols-7">
-              {calendarDays.map(({ date, day, isCurrentMonth }) => {
+              {calendarDays.map(({ key, date, day, isCurrentMonth }) => {
                 const dayOrders = ordersByDate[date] || [];
                 const isToday = date === today;
                 const isSelected = date === selectedDate;
                 return (
                   <button
-                    key={date}
+                    key={key}
                     onClick={() => setSelectedDate(date)}
                     className={`p-1.5 min-h-[56px] md:min-h-[76px] border-b border-r border-gray-100 text-left align-top transition-all
                       ${!isCurrentMonth ? 'bg-gray-50/50 text-gray-300' : 'hover:bg-violet-50/50'}
