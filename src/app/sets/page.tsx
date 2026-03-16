@@ -1,14 +1,19 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import type { ProductSet, Variety } from '@/types';
+import type { ProductSet, Variety, PricingMode } from '@/types';
+
+const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
 
 export default function SetsPage() {
   const [sets, setSets] = useState<ProductSet[]>([]);
   const [varieties, setVarieties] = useState<Variety[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: '', price: 0, is_active: true, items: [] as { variety_id: string; quantity: number }[] });
+  const [form, setForm] = useState({
+    name: '', price: 0, pricing_mode: 'fixed' as PricingMode, is_active: true,
+    items: [] as { variety_id: string; quantity: number }[],
+  });
 
   const load = () => {
     fetch('/api/sets').then(r => r.json()).then(setSets);
@@ -23,7 +28,9 @@ export default function SetsPage() {
     } else {
       await fetch('/api/sets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     }
-    setEditId(null); setIsAdding(false); setForm({ name: '', price: 0, is_active: true, items: [] }); load();
+    setEditId(null); setIsAdding(false);
+    setForm({ name: '', price: 0, pricing_mode: 'fixed', is_active: true, items: [] });
+    load();
   };
 
   const handleDelete = async (id: string) => {
@@ -37,10 +44,21 @@ export default function SetsPage() {
 
   const startEdit = (s: ProductSet) => {
     setEditId(s.id); setIsAdding(false);
-    setForm({ name: s.name, price: s.price, is_active: s.is_active, items: (s.items || []).map(si => ({ variety_id: si.variety_id, quantity: si.quantity })) });
+    setForm({
+      name: s.name, price: s.price, pricing_mode: s.pricing_mode || 'fixed', is_active: s.is_active,
+      items: (s.items || []).map(si => ({ variety_id: si.variety_id, quantity: si.quantity })),
+    });
   };
-  const startAdd = () => { setIsAdding(true); setEditId(null); setForm({ name: '', price: 0, is_active: true, items: [{ variety_id: varieties[0]?.id || '', quantity: 1 }] }); };
-  const cancel = () => { setEditId(null); setIsAdding(false); setForm({ name: '', price: 0, is_active: true, items: [] }); };
+
+  const startAdd = () => {
+    setIsAdding(true); setEditId(null);
+    setForm({ name: '', price: 0, pricing_mode: 'fixed', is_active: true, items: [{ variety_id: varieties[0]?.id || '', quantity: 1 }] });
+  };
+
+  const cancel = () => {
+    setEditId(null); setIsAdding(false);
+    setForm({ name: '', price: 0, pricing_mode: 'fixed', is_active: true, items: [] });
+  };
 
   const addItem = () => setForm(f => ({ ...f, items: [...f.items, { variety_id: varieties[0]?.id || '', quantity: 1 }] }));
   const removeItem = (idx: number) => setForm(f => ({ ...f, items: f.items.filter((_, i) => i !== idx) }));
@@ -51,9 +69,13 @@ export default function SetsPage() {
   const renderForm = () => (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-4">
       <h3 className="text-sm font-semibold text-gray-800">{editId ? 'セット編集' : '新規セット'}</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <input className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent" placeholder="セット名" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
-        <input className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent" type="number" placeholder="価格" value={form.price || ''} onChange={e => setForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))} />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <input className={inputCls} placeholder="セット名" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+        <input className={inputCls} type="number" placeholder="価格" value={form.price || ''} onChange={e => setForm(f => ({ ...f, price: parseInt(e.target.value) || 0 }))} />
+        <select className={inputCls} value={form.pricing_mode} onChange={e => setForm(f => ({ ...f, pricing_mode: e.target.value as PricingMode }))}>
+          <option value="fixed">固定価格</option>
+          <option value="derived">構成合計</option>
+        </select>
         <label className="flex items-center gap-2 text-sm text-gray-700">
           <input type="checkbox" className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" checked={form.is_active} onChange={e => setForm(f => ({ ...f, is_active: e.target.checked }))} />
           有効
@@ -68,7 +90,7 @@ export default function SetsPage() {
             </select>
             <input className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-20 text-center focus:outline-none focus:ring-2 focus:ring-violet-500" type="number" min={1} value={item.quantity} onChange={e => updateItem(idx, 'quantity', parseInt(e.target.value) || 1)} />
             <span className="text-xs text-gray-400">房</span>
-            <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-sm">✕</button>
+            <button onClick={() => removeItem(idx)} className="text-red-400 hover:text-red-600 text-sm">x</button>
           </div>
         ))}
         <button onClick={addItem} className="text-violet-600 text-sm hover:underline font-medium">+ 品種を追加</button>
@@ -89,35 +111,44 @@ export default function SetsPage() {
 
       {(isAdding || editId) && renderForm()}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      {/* Compact list rows */}
+      <div className="space-y-2">
         {sets.map(s => (
-          <div key={s.id} className={`bg-white rounded-xl border border-gray-200 shadow-sm p-5 transition-opacity ${!s.is_active ? 'opacity-50' : ''}`}>
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                <h3 className="font-semibold text-gray-900">{s.name}</h3>
-                <p className="text-2xl font-bold text-violet-700 mt-1">¥{s.price.toLocaleString()}</p>
-              </div>
-              <span className={`text-[11px] px-2 py-0.5 rounded-md border font-medium ${s.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-gray-50 text-gray-400 border-gray-200'}`}>
-                {s.is_active ? '有効' : '無効'}
-              </span>
-            </div>
-            <div className="space-y-1.5 mb-4">
-              <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">構成品種</p>
-              {(s.items || []).map(si => (
-                <div key={si.id} className="flex items-center gap-2 text-sm text-gray-700">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />
-                  <span>{si.variety?.name || '不明'}</span>
-                  <span className="text-gray-400">× {si.quantity}</span>
+          <div key={s.id} className={`bg-white rounded-lg border border-gray-200 shadow-sm px-4 py-3 transition-opacity ${!s.is_active ? 'opacity-50' : ''}`}>
+            <div className="flex items-center gap-4">
+              {/* Left: name, price, pricing mode */}
+              <div className="min-w-[160px] shrink-0">
+                <span className="font-semibold text-gray-900">{s.name}</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-sm font-bold text-violet-700">&yen;{s.price.toLocaleString()}</span>
+                  <span className="text-[11px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+                    {s.pricing_mode === 'fixed' ? '固定' : '構成合計'}
+                  </span>
                 </div>
-              ))}
-            </div>
-            <div className="flex gap-3 border-t border-gray-100 pt-3">
-              <button onClick={() => handleToggle(s)} className="text-xs text-gray-500 hover:text-gray-700 font-medium">{s.is_active ? '無効にする' : '有効にする'}</button>
-              <button onClick={() => startEdit(s)} className="text-xs text-violet-600 hover:underline font-medium">編集</button>
-              <button onClick={() => handleDelete(s.id)} className="text-xs text-red-500 hover:underline">削除</button>
+              </div>
+
+              {/* Middle: composition inline */}
+              <div className="flex-1 min-w-0">
+                <span className="text-sm text-gray-600 truncate block">
+                  {(s.items || []).map(si => `${si.variety?.name || '不明'} x ${si.quantity}`).join(', ') || '-'}
+                </span>
+              </div>
+
+              {/* Right: toggle, edit, delete */}
+              <div className="flex items-center gap-2 shrink-0">
+                <button
+                  onClick={() => handleToggle(s)}
+                  className={`text-xs px-2.5 py-1 rounded-lg border font-medium transition-colors ${s.is_active ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' : 'bg-gray-50 text-gray-400 border-gray-200 hover:bg-gray-100'}`}
+                >
+                  {s.is_active ? '有効' : '無効'}
+                </button>
+                <button onClick={() => startEdit(s)} className="text-xs text-violet-600 hover:underline font-medium px-2 py-1">編集</button>
+                <button onClick={() => handleDelete(s.id)} className="text-xs text-red-500 hover:underline px-2 py-1">削除</button>
+              </div>
             </div>
           </div>
         ))}
+        {sets.length === 0 && <p className="text-gray-400 text-center py-8 text-sm">セットがありません</p>}
       </div>
     </div>
   );

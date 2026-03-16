@@ -6,6 +6,8 @@ const colorMap: Record<string, string> = {
   '配達予定': 'bg-indigo-50 text-indigo-700 border-indigo-200',
   '完了': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   '未収': 'bg-red-50 text-red-600 border-red-200',
+  '未払い': 'bg-red-50 text-red-600 border-red-200',
+  '支払済': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   '現金': 'bg-emerald-50 text-emerald-700 border-emerald-200',
   'PayPay': 'bg-sky-50 text-sky-700 border-sky-200',
   '配送': 'bg-violet-50 text-violet-700 border-violet-200',
@@ -16,7 +18,7 @@ const colorMap: Record<string, string> = {
 export default function StatusBadge({ status }: { status: string }) {
   const color = colorMap[status] || 'bg-gray-50 text-gray-600 border-gray-200';
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-medium border ${color}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-md text-[11px] font-medium border leading-tight ${color}`}>
       {status}
     </span>
   );
