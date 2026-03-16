@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Customer, Reception } from '@/types';
 
+const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
+
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [receptions, setReceptions] = useState<Reception[]>([]);
   const [search, setSearch] = useState('');
+  const [isAdding, setIsAdding] = useState(false);
+  const [newForm, setNewForm] = useState({ name: '', phone: '', address: '', memo: '' });
 
   useEffect(() => { load(); }, []);
 
@@ -37,15 +41,53 @@ export default function CustomersPage() {
       ? `${c.name} を削除しますか？関連する受付${count}件もすべて削除されます。`
       : `${c.name} を削除しますか？`;
     if (!confirm(msg)) return;
+    // 楽観的に即時反映
+    setCustomers(prev => prev.filter(x => x.id !== c.id));
+    setReceptions(prev => prev.filter(r => r.customer_id !== c.id));
     await fetch(`/api/customers/${c.id}`, { method: 'DELETE' });
-    load();
+  };
+
+  const handleAddCustomer = async () => {
+    if (!newForm.name.trim()) { alert('名前を入力してください'); return; }
+    const res = await fetch('/api/customers', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newForm),
+    });
+    if (res.ok) {
+      setIsAdding(false);
+      setNewForm({ name: '', phone: '', address: '', memo: '' });
+      load();
+    }
   };
 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">顧客</h1>
+        <button
+          onClick={() => setIsAdding(!isAdding)}
+          className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+        >
+          + 新規顧客
+        </button>
       </div>
+
+      {isAdding && (
+        <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 space-y-3">
+          <h3 className="text-sm font-semibold text-gray-800">新規顧客</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input className={inputCls} placeholder="名前 *" value={newForm.name} onChange={e => setNewForm(f => ({ ...f, name: e.target.value }))} autoFocus />
+            <input className={inputCls} placeholder="電話番号" value={newForm.phone} onChange={e => setNewForm(f => ({ ...f, phone: e.target.value }))} />
+            <input className={`${inputCls} sm:col-span-2`} placeholder="住所" value={newForm.address} onChange={e => setNewForm(f => ({ ...f, address: e.target.value }))} />
+            <input className={`${inputCls} sm:col-span-2`} placeholder="メモ" value={newForm.memo} onChange={e => setNewForm(f => ({ ...f, memo: e.target.value }))} />
+          </div>
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <button onClick={handleAddCustomer} className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">保存</button>
+            <button onClick={() => { setIsAdding(false); setNewForm({ name: '', phone: '', address: '', memo: '' }); }} className="text-gray-500 px-4 py-2 text-sm hover:text-gray-700">キャンセル</button>
+          </div>
+        </div>
+      )}
 
       <input
         className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full max-w-sm"

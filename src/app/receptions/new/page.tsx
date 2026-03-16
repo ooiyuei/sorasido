@@ -193,7 +193,20 @@ export default function NewReceptionPage() {
             </div>
             <div>
               <label className="text-[11px] text-gray-500 mb-1 block">希望時間</label>
-              <input className={inputCls} placeholder="午前 / 10:00 など" value={form.desired_time} onChange={e => setForm(f => ({ ...f, desired_time: e.target.value }))} />
+              <select className={inputCls} value={form.desired_time} onChange={e => setForm(f => ({ ...f, desired_time: e.target.value }))}>
+                <option value="">指定なし</option>
+                <option value="午前">午前</option>
+                <option value="午後">午後</option>
+                <option value="9:00">9:00</option>
+                <option value="10:00">10:00</option>
+                <option value="11:00">11:00</option>
+                <option value="12:00">12:00</option>
+                <option value="13:00">13:00</option>
+                <option value="14:00">14:00</option>
+                <option value="15:00">15:00</option>
+                <option value="16:00">16:00</option>
+                <option value="17:00">17:00</option>
+              </select>
             </div>
           </div>
         </div>

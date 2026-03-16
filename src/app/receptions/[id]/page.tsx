@@ -27,6 +27,11 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
     fetch(`/api/receptions/${id}`).then(r => r.json()).then(setReception);
   };
 
+  const handleFieldUpdate = async (field: string, value: string) => {
+    await fetch(`/api/receptions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ [field]: value }) });
+    fetch(`/api/receptions/${id}`).then(r => r.json()).then(setReception);
+  };
+
   const handleDelete = async () => {
     if (!confirm('この受付を削除しますか？')) return;
     await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
@@ -123,8 +128,36 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
 
         {/* Delivery info */}
         <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div><p className="text-[11px] text-gray-400 uppercase tracking-wide">希望日</p><p className="font-medium text-gray-700 mt-0.5">{reception.desired_date || '-'}</p></div>
-          <div><p className="text-[11px] text-gray-400 uppercase tracking-wide">希望時間</p><p className="font-medium text-gray-700 mt-0.5">{reception.desired_time || '-'}</p></div>
+          <div>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide">希望日</p>
+            <input
+              type="date"
+              className="mt-0.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              value={reception.desired_date || ''}
+              onChange={e => handleFieldUpdate('desired_date', e.target.value)}
+            />
+          </div>
+          <div>
+            <p className="text-[11px] text-gray-400 uppercase tracking-wide">希望時間</p>
+            <select
+              className="mt-0.5 text-sm font-medium text-gray-700 border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-violet-500"
+              value={reception.desired_time || ''}
+              onChange={e => handleFieldUpdate('desired_time', e.target.value)}
+            >
+              <option value="">指定なし</option>
+              <option value="午前">午前</option>
+              <option value="午後">午後</option>
+              <option value="9:00">9:00</option>
+              <option value="10:00">10:00</option>
+              <option value="11:00">11:00</option>
+              <option value="12:00">12:00</option>
+              <option value="13:00">13:00</option>
+              <option value="14:00">14:00</option>
+              <option value="15:00">15:00</option>
+              <option value="16:00">16:00</option>
+              <option value="17:00">17:00</option>
+            </select>
+          </div>
           <div><p className="text-[11px] text-gray-400 uppercase tracking-wide">箱</p><p className="font-medium text-gray-700 mt-0.5">{reception.has_box ? 'あり' : 'なし'}</p></div>
         </div>
 
@@ -194,8 +227,8 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
 
-        {/* Google Calendar */}
-        <div className="p-4">
+        {/* Actions */}
+        <div className="p-4 flex items-center justify-between">
           <a
             href={buildGoogleCalendarUrl(reception)}
             target="_blank"
@@ -204,11 +237,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
           >
             Googleカレンダーに追加
           </a>
-        </div>
-
-        {/* Delete */}
-        <div className="p-4">
-          <button onClick={handleDelete} className="text-red-500 text-xs hover:underline font-medium">受付を削除</button>
+          <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">受付を削除</button>
         </div>
       </div>
     </div>

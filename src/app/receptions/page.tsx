@@ -34,8 +34,9 @@ export default function ReceptionsPage() {
 
   const handleDelete = async (id: string, customerName: string) => {
     if (!confirm(`${customerName} の受付を削除しますか？`)) return;
+    // 楽観的に即時反映
+    setReceptions(prev => prev.filter(r => r.id !== id));
     await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
-    load();
   };
 
   return (
