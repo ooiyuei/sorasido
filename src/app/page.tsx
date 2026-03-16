@@ -19,8 +19,8 @@ export default function Dashboard() {
 
   const todayReceptions = receptions.filter(r => r.desired_date === today && r.status !== 'キャンセル' && r.status !== '相談中');
   const tomorrowReceptions = receptions.filter(r => r.desired_date === tomorrow && r.status !== 'キャンセル' && r.status !== '相談中');
-  const unpaidReceptions = receptions.filter(r => r.payment_method === '未収' && r.status !== 'キャンセル' && r.status !== '完了');
-  const activeReceptions = receptions.filter(r => r.status !== 'キャンセル' && r.status !== '完了');
+  const waitingAccounting = receptions.filter(r => r.status === '会計待ち');
+  const unpaidReceptions = receptions.filter(r => r.payment_method === '未定' && r.status === '完了');
 
   const mapsUrl = (address: string) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
@@ -33,17 +33,20 @@ export default function Dashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard label="本日受渡し" value={todayReceptions.length} color="text-violet-700" bg="bg-violet-50" />
         <SummaryCard label="明日受渡し" value={tomorrowReceptions.length} color="text-blue-700" bg="bg-blue-50" />
+        <SummaryCard label="会計待ち" value={waitingAccounting.length} color="text-amber-700" bg="bg-amber-50" />
         <SummaryCard label="未払い" value={unpaidReceptions.length} color="text-red-600" bg="bg-red-50" />
-        <SummaryCard label="進行中" value={activeReceptions.length} color="text-emerald-700" bg="bg-emerald-50" />
       </div>
 
-      {/* Today + Unpaid */}
+      {/* Today's schedule + Quick link */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Today */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-800">本日の受渡し</h2>
-            <Link href="/calendar" className="text-xs text-violet-600 hover:underline">カレンダー →</Link>
+            <h2 className="text-sm font-semibold text-gray-800">本日のスケジュール</h2>
+            <div className="flex items-center gap-2">
+              <Link href="/accounting" className="text-xs text-amber-600 hover:underline font-medium">当日会計 →</Link>
+              <Link href="/calendar" className="text-xs text-violet-600 hover:underline">カレンダー →</Link>
+            </div>
           </div>
           <div className="p-3">
             {todayReceptions.length === 0 ? (
@@ -54,14 +57,15 @@ export default function Dashboard() {
                   <div key={r.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <Link href={`/receptions/${r.id}`} className="flex items-center gap-3 flex-1 min-w-0">
                       <span className="text-xs text-gray-400 font-mono w-12 shrink-0">{r.desired_time || '--:--'}</span>
-                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name}</span>
+                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name_snapshot}</span>
                     </Link>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <StatusBadge status={r.delivery_method} />
+                      <StatusBadge status={r.weighed ? '計量済み' : '未計量'} />
                       <StatusBadge status={r.status} />
-                      {r.address && (
+                      {r.customer_address_snapshot && (
                         <a
-                          href={mapsUrl(r.address)}
+                          href={mapsUrl(r.customer_address_snapshot)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-base leading-none hover:opacity-70 transition-opacity"
@@ -78,26 +82,37 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* Unpaid */}
+        {/* Waiting for accounting + Unpaid */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-800">未払い</h2>
+            <h2 className="text-sm font-semibold text-gray-800">会計待ち / 未払い</h2>
             <Link href="/receptions" className="text-xs text-violet-600 hover:underline">受付一覧 →</Link>
           </div>
           <div className="p-3">
-            {unpaidReceptions.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">未払いはありません</p>
+            {waitingAccounting.length === 0 && unpaidReceptions.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">対応待ちはありません</p>
             ) : (
               <div className="space-y-1">
+                {waitingAccounting.map(r => (
+                  <Link key={r.id} href={`/receptions/${r.id}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="text-xs text-gray-400 w-20 shrink-0">{r.desired_date || '-'}</span>
+                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name_snapshot}</span>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <StatusBadge status="会計待ち" />
+                    </div>
+                  </Link>
+                ))}
                 {unpaidReceptions.map(r => (
                   <Link key={r.id} href={`/receptions/${r.id}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs text-gray-400 w-20 shrink-0">{r.desired_date}</span>
-                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name}</span>
+                      <span className="text-xs text-gray-400 w-20 shrink-0">{r.desired_date || '-'}</span>
+                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name_snapshot}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="font-semibold text-sm text-gray-900">¥{r.total.toLocaleString()}</span>
-                      <StatusBadge status={r.status} />
+                      <StatusBadge status="未払い" />
                     </div>
                   </Link>
                 ))}

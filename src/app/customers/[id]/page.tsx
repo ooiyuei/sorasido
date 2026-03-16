@@ -6,18 +6,36 @@ import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
 import type { Customer, Reception } from '@/types';
 
+const inputCls = 'border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full';
+
 export default function CustomerDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [receptions, setReceptions] = useState<Reception[]>([]);
-  const [memo, setMemo] = useState('');
-  const [savingMemo, setSavingMemo] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  // Editable fields
+  const [form, setForm] = useState({
+    name: '',
+    phone: '',
+    address: '',
+    line_name: '',
+    memo: '',
+    frequent_items: '',
+  });
 
   useEffect(() => {
     fetch(`/api/customers/${id}`).then(r => r.json()).then((c: Customer) => {
       setCustomer(c);
-      setMemo(c.memo || '');
+      setForm({
+        name: c.name || '',
+        phone: c.phone || '',
+        address: c.address || '',
+        line_name: c.line_name || '',
+        memo: c.memo || '',
+        frequent_items: c.frequent_items || '',
+      });
     });
     fetch('/api/receptions').then(r => r.json()).then(setReceptions);
   }, [id]);
@@ -28,22 +46,23 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   const activeReceptions = customerReceptions.filter(r => r.status !== '完了' && r.status !== 'キャンセル');
   const pastReceptions = customerReceptions.filter(r => r.status === '完了' || r.status === 'キャンセル');
+  const hasReceptions = customerReceptions.length > 0;
 
-  const saveMemo = async () => {
-    setSavingMemo(true);
+  const saveCustomer = async () => {
+    setSaving(true);
     await fetch(`/api/customers/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ memo }),
+      body: JSON.stringify(form),
     });
-    setSavingMemo(false);
+    setSaving(false);
   };
 
-  const handleDeleteCustomer = async () => {
-    const activeCount = receptions.filter(r => r.customer_id === id && r.status !== '完了' && r.status !== 'キャンセル').length;
+  const handleArchive = async () => {
+    const activeCount = activeReceptions.length;
     const msg = activeCount > 0
-      ? `この顧客には進行中の受付が${activeCount}件あります。顧客と関連する受付をすべて削除しますか？`
-      : 'この顧客を削除しますか？関連する受付もすべて削除されます。';
+      ? `この顧客には進行中の受付が${activeCount}件あります。アーカイブしますか？`
+      : 'この顧客をアーカイブしますか？';
     if (!confirm(msg)) return;
     await fetch(`/api/customers/${id}`, { method: 'DELETE' });
     router.push('/customers');
@@ -56,54 +75,92 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">顧客詳細</h1>
         <div className="flex items-center gap-3">
-          <button onClick={handleDeleteCustomer} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">顧客を削除</button>
+          <button onClick={handleArchive} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">アーカイブ</button>
           <button onClick={() => router.back()} className="text-xs text-gray-500 hover:text-gray-700">← 戻る</button>
         </div>
       </div>
 
-      {/* Customer info */}
+      {/* Editable fields */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">
-        <div className="p-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide">名前</p>
-            <p className="font-semibold text-gray-900 text-lg mt-0.5">{customer.name}</p>
+        <div className="p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">名前</label>
+              <input
+                className={inputCls}
+                value={form.name}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">電話番号</label>
+              <input
+                className={inputCls}
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">住所</label>
+              <input
+                className={inputCls}
+                value={form.address}
+                onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">LINE名</label>
+              <input
+                className={inputCls}
+                value={form.line_name}
+                onChange={e => setForm(f => ({ ...f, line_name: e.target.value }))}
+              />
+            </div>
+            <div>
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">よく注文する品</label>
+              <input
+                className={inputCls}
+                value={form.frequent_items}
+                onChange={e => setForm(f => ({ ...f, frequent_items: e.target.value }))}
+                placeholder="例: 巨峰2房, シャインマスカット1房"
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="text-[11px] text-gray-400 uppercase tracking-wide font-semibold">メモ</label>
+              <textarea
+                className={`${inputCls} min-h-[60px]`}
+                value={form.memo}
+                onChange={e => setForm(f => ({ ...f, memo: e.target.value }))}
+                placeholder="顧客メモ..."
+              />
+            </div>
           </div>
-          <div>
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide">電話番号</p>
-            <p className="font-medium text-gray-700 mt-0.5">{customer.phone || '-'}</p>
-          </div>
-          <div className="sm:col-span-2">
-            <p className="text-[11px] text-gray-400 uppercase tracking-wide">住所</p>
-            {customer.address ? (
-              <a
-                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(customer.address)}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-violet-600 hover:underline text-sm mt-0.5 inline-block"
-              >
-                {customer.address} 📍
-              </a>
-            ) : <p className="text-gray-400 text-sm mt-0.5">-</p>}
-          </div>
-        </div>
-
-        {/* Memo */}
-        <div className="p-4 space-y-2">
-          <p className="text-[11px] text-gray-400 uppercase tracking-wide">メモ</p>
-          <textarea
-            className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full min-h-[60px]"
-            value={memo}
-            onChange={e => setMemo(e.target.value)}
-            placeholder="顧客メモ..."
-          />
           <button
-            onClick={saveMemo}
-            disabled={savingMemo}
-            className="text-xs px-3 py-1.5 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
+            onClick={saveCustomer}
+            disabled={saving}
+            className="text-xs px-4 py-2 rounded-lg bg-violet-600 text-white font-medium hover:bg-violet-700 transition-colors disabled:opacity-50"
           >
-            {savingMemo ? '保存中...' : 'メモを保存'}
+            {saving ? '保存中...' : '保存'}
           </button>
         </div>
+      </div>
+
+      {/* Action buttons */}
+      <div className="flex gap-3">
+        <Link
+          href={`/receptions/new?customer_id=${id}`}
+          className="bg-violet-600 text-white px-4 py-2.5 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+        >
+          この顧客で新規受付
+        </Link>
+        {hasReceptions && (
+          <Link
+            href={`/receptions/new?customer_id=${id}&duplicate=last`}
+            className="bg-white text-violet-700 px-4 py-2.5 rounded-lg text-sm font-medium border border-violet-300 hover:bg-violet-50 transition-colors"
+          >
+            前回内容を複製
+          </Link>
+        )}
       </div>
 
       {/* Active receptions */}

@@ -4,7 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
-import type { Reception, ReceptionStatus, PaymentStatus, DeliveryMethod, PaymentMethod, Variety, ProductSet } from '@/types';
+import type { Reception, ReceptionStatus, DeliveryMethod, PaymentMethod, PaymentStatus, Variety, ProductSet } from '@/types';
 
 const inputCls = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
 
@@ -12,6 +12,7 @@ interface ItemForm {
   type: 'variety' | 'set';
   id: string;
   quantity: number;
+  planned_quantity_text: string;
   unit_price_snapshot: number;
 }
 
@@ -38,8 +39,8 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
     setSaving(false);
   };
 
-  const handleDelete = async () => {
-    if (!confirm('この受付を削除しますか？')) return;
+  const handleArchive = async () => {
+    if (!confirm('この受付をアーカイブしますか？')) return;
     await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
     router.push('/receptions');
   };
@@ -53,6 +54,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
       type: i.set_id ? 'set' : 'variety',
       id: i.set_id || i.variety_id || '',
       quantity: i.quantity,
+      planned_quantity_text: i.planned_quantity_text || '',
       unit_price_snapshot: i.unit_price_snapshot,
     })));
   };
@@ -65,6 +67,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
       variety_id: i.type === 'variety' ? i.id : null,
       set_id: i.type === 'set' ? i.id : null,
       quantity: i.quantity,
+      planned_quantity_text: i.planned_quantity_text,
       unit_price_snapshot: i.unit_price_snapshot,
     }));
     await update({ items });
@@ -74,13 +77,13 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
   const addVarietyItem = () => {
     if (!varieties.length) return;
     const v = varieties[0];
-    setEditItems(prev => [...(prev || []), { type: 'variety', id: v.id, quantity: 1, unit_price_snapshot: v.unit_price }]);
+    setEditItems(prev => [...(prev || []), { type: 'variety', id: v.id, quantity: 1, planned_quantity_text: '', unit_price_snapshot: v.unit_price }]);
   };
 
   const addSetItem = () => {
     if (!sets.length) return;
     const s = sets[0];
-    setEditItems(prev => [...(prev || []), { type: 'set', id: s.id, quantity: 1, unit_price_snapshot: s.price }]);
+    setEditItems(prev => [...(prev || []), { type: 'set', id: s.id, quantity: 1, planned_quantity_text: '', unit_price_snapshot: s.price }]);
   };
 
   const updateEditItem = (idx: number, updates: Partial<ItemForm>) => {
@@ -105,12 +108,12 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
   const editSubtotal = editItems ? editItems.reduce((sum, i) => sum + i.quantity * i.unit_price_snapshot, 0) : 0;
 
   const buildGoogleCalendarUrl = (r: Reception) => {
-    const title = encodeURIComponent(`受渡し: ${r.customer_name}`);
+    const title = encodeURIComponent(`受渡し: ${r.customer_name_snapshot}`);
     const date = (r.desired_date || '').replace(/-/g, '');
-    const location = encodeURIComponent(r.address || '');
+    const location = encodeURIComponent(r.customer_address_snapshot || '');
     const itemNames = (r.items || []).map(i => i.set?.name || i.variety?.name || '-').join(', ');
     const details = encodeURIComponent(
-      `商品: ${itemNames}\n内容: ${r.items_note || '-'}\n電話: ${r.phone || '-'}\n支払: ${r.payment_method} (${r.payment_status})\n配達方法: ${r.delivery_method}\n合計: ¥${r.total.toLocaleString()}`
+      `商品: ${itemNames}\n内容: ${r.items_note || '-'}\n電話: ${r.customer_phone_snapshot || '-'}\n支払: ${r.payment_method} (${r.payment_status})\n配達方法: ${r.delivery_method}\n合計: ¥${r.total.toLocaleString()}`
     );
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${date}/${date}&location=${location}&details=${details}`;
   };
@@ -141,10 +144,8 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
               <p className="text-[11px] text-gray-400 mb-1">ステータス</p>
               <select className={inputCls} value={reception.status} onChange={e => update({ status: e.target.value })}>
                 <option value="相談中">相談中</option>
-                <option value="仮予約">仮予約</option>
-                <option value="注文確定">注文確定</option>
-                <option value="準備中">準備中</option>
-                <option value="受渡し待ち">受渡し待ち</option>
+                <option value="受付済み">受付済み</option>
+                <option value="会計待ち">会計待ち</option>
                 <option value="完了">完了</option>
                 <option value="キャンセル">キャンセル</option>
               </select>
@@ -153,7 +154,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
               <p className="text-[11px] text-gray-400 mb-1">配達方法</p>
               <select className={inputCls} value={reception.delivery_method} onChange={e => update({ delivery_method: e.target.value })}>
                 <option value="配達">配達</option>
-                <option value="配送">配送（送料¥1,500）</option>
+                <option value="配送">配送</option>
                 <option value="店頭受取">店頭受取</option>
               </select>
             </div>
@@ -162,7 +163,8 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
               <select className={inputCls} value={reception.payment_method} onChange={e => update({ payment_method: e.target.value })}>
                 <option value="現金">現金</option>
                 <option value="PayPay">PayPay</option>
-                <option value="未収">未収</option>
+                <option value="振込">振込</option>
+                <option value="未定">未定</option>
               </select>
             </div>
             <div>
@@ -175,9 +177,43 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
                     : 'bg-red-50 text-red-600 border-red-200 hover:bg-red-100'
                 }`}
               >
-                {reception.payment_status === '支払済' ? '✓ 支払済' : '未払い → 支払済'}
+                {reception.payment_status === '支払済' ? '支払済' : '未払い → 支払済'}
               </button>
             </div>
+          </div>
+        </div>
+
+        {/* Sub-checks: date_confirmed, weighed, delivered */}
+        <div className="p-4">
+          <p className="text-[11px] text-gray-400 uppercase tracking-wide mb-2">進捗チェック</p>
+          <div className="flex items-center gap-4 flex-wrap">
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                checked={reception.date_confirmed}
+                onChange={e => update({ date_confirmed: e.target.checked })}
+              />
+              日程確定
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                checked={reception.weighed}
+                onChange={e => update({ weighed: e.target.checked })}
+              />
+              計量済み
+            </label>
+            <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                type="checkbox"
+                className="rounded border-gray-300 text-violet-600 focus:ring-violet-500"
+                checked={reception.delivered}
+                onChange={e => update({ delivered: e.target.checked })}
+              />
+              配達済み
+            </label>
           </div>
         </div>
 
@@ -186,21 +222,21 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
           <div>
             <p className="text-[11px] text-gray-400 uppercase tracking-wide">名前</p>
             <Link href={`/customers/${reception.customer_id}`} className="font-semibold text-gray-900 text-lg mt-0.5 hover:text-violet-700 transition-colors">
-              {reception.customer_name}
+              {reception.customer_name_snapshot}
             </Link>
           </div>
           <div>
             <p className="text-[11px] text-gray-400 uppercase tracking-wide">電話番号</p>
-            <p className="font-medium text-gray-700 mt-0.5">{reception.phone || '-'}</p>
+            <p className="font-medium text-gray-700 mt-0.5">{reception.customer_phone_snapshot || '-'}</p>
           </div>
           <div className="sm:col-span-2">
             <p className="text-[11px] text-gray-400 uppercase tracking-wide">住所</p>
-            {reception.address ? (
+            {reception.customer_address_snapshot ? (
               <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reception.address)}`} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline text-sm">
-                  {reception.address} 📍
+                <a href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(reception.customer_address_snapshot)}`} target="_blank" rel="noopener noreferrer" className="text-violet-600 hover:underline text-sm">
+                  {reception.customer_address_snapshot}
                 </a>
-                <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(reception.address)}`} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 transition-colors">
+                <a href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(reception.customer_address_snapshot)}`} target="_blank" rel="noopener noreferrer" className="text-xs px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 transition-colors">
                   ルート案内
                 </a>
               </div>
@@ -220,15 +256,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
               <option value="">指定なし</option>
               <option value="午前">午前</option>
               <option value="午後">午後</option>
-              <option value="9:00">9:00</option>
-              <option value="10:00">10:00</option>
-              <option value="11:00">11:00</option>
-              <option value="12:00">12:00</option>
-              <option value="13:00">13:00</option>
-              <option value="14:00">14:00</option>
-              <option value="15:00">15:00</option>
-              <option value="16:00">16:00</option>
-              <option value="17:00">17:00</option>
+              <option value="9:00-17:00">9:00-17:00</option>
             </select>
           </div>
           <div>
@@ -241,12 +269,19 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
                   : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'
               }`}
             >
-              {reception.has_box ? '✓ 箱あり' : '箱なし'}
+              {reception.has_box ? '箱あり' : '箱なし'}
             </button>
           </div>
           <div>
-            <p className="text-[11px] text-gray-400 mb-1">送料</p>
-            <p className="text-sm font-medium text-gray-700 py-1.5">¥{reception.shipping_fee.toLocaleString()}</p>
+            <p className="text-[11px] text-gray-400 mb-1">箱数</p>
+            <input
+              type="number"
+              min={0}
+              className={inputCls}
+              value={reception.box_count || 0}
+              onBlur={e => { const v = parseInt(e.target.value) || 0; if (v !== reception.box_count) update({ box_count: v }); }}
+              onChange={e => setReception(prev => prev ? { ...prev, box_count: parseInt(e.target.value) || 0 } : prev)}
+            />
           </div>
         </div>
 
@@ -288,9 +323,10 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
                           {item.set_id ? 'セット' : '単品'}
                         </span>
                         <span className="text-sm text-gray-800 truncate">{item.set?.name || item.variety?.name || '-'}</span>
+                        {item.planned_quantity_text && <span className="text-xs text-gray-400">({item.planned_quantity_text})</span>}
                       </div>
                       <div className="flex items-center gap-3 shrink-0 text-sm">
-                        <span className="text-gray-500">×{item.quantity}</span>
+                        <span className="text-gray-500">x{item.quantity}</span>
                         <span className="text-gray-500">@¥{item.unit_price_snapshot.toLocaleString()}</span>
                         <span className="font-semibold text-gray-900 w-20 text-right">¥{item.line_total.toLocaleString()}</span>
                       </div>
@@ -298,7 +334,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-gray-400">商品なし — 「編集」で追加できます</p>
+                <p className="text-sm text-gray-400">商品なし -- 「編集」で追加できます</p>
               )}
             </>
           ) : (
@@ -316,6 +352,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
                     }
                   </select>
                   <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-14 text-center focus:outline-none focus:ring-2 focus:ring-violet-500" type="number" min={1} value={item.quantity} onChange={e => updateEditItem(idx, { quantity: parseInt(e.target.value) || 1 })} />
+                  <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-24 focus:outline-none focus:ring-2 focus:ring-violet-500" placeholder="数量メモ" value={item.planned_quantity_text} onChange={e => updateEditItem(idx, { planned_quantity_text: e.target.value })} />
                   <input className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm w-24 text-right focus:outline-none focus:ring-2 focus:ring-violet-500" type="number" value={item.unit_price_snapshot || ''} onChange={e => updateEditItem(idx, { unit_price_snapshot: parseInt(e.target.value) || 0 })} />
                   <span className="text-xs text-gray-400">円</span>
                   <span className="text-xs text-gray-600 w-16 text-right">¥{(item.quantity * item.unit_price_snapshot).toLocaleString()}</span>
@@ -339,6 +376,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
         <div className="p-4 bg-gray-50/50 space-y-1.5">
           <div className="flex justify-between text-sm text-gray-600"><span>小計</span><span>¥{reception.subtotal.toLocaleString()}</span></div>
           {reception.shipping_fee > 0 && <div className="flex justify-between text-sm text-gray-400"><span>送料</span><span>¥{reception.shipping_fee.toLocaleString()}</span></div>}
+          {reception.discount > 0 && <div className="flex justify-between text-sm text-gray-400"><span>値引き</span><span>-¥{reception.discount.toLocaleString()}</span></div>}
           <div className="flex justify-between text-xl font-bold text-gray-900 pt-2 border-t border-gray-200"><span>合計</span><span>¥{reception.total.toLocaleString()}</span></div>
         </div>
 
@@ -367,7 +405,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
         </div>
 
         {/* Actions */}
-        <div className="p-4 flex items-center justify-between">
+        <div className="p-4 flex items-center justify-between flex-wrap gap-2">
           <a
             href={buildGoogleCalendarUrl(reception)}
             target="_blank"
@@ -376,7 +414,7 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
           >
             Googleカレンダーに追加
           </a>
-          <button onClick={handleDelete} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">受付を削除</button>
+          <button onClick={handleArchive} className="text-xs text-red-500 hover:text-red-700 font-medium px-3 py-1.5 rounded-lg border border-red-200 hover:bg-red-50 transition-colors">アーカイブ</button>
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
 import type { Reception, ReceptionStatus } from '@/types';
 
-const statusFilters: (ReceptionStatus | '全て')[] = ['全て', '相談中', '仮予約', '注文確定', '準備中', '受渡し待ち', '完了', 'キャンセル'];
+const statusFilters: (ReceptionStatus | '全て')[] = ['全て', '相談中', '受付済み', '会計待ち', '完了', 'キャンセル'];
 const paymentFilters: ('全て' | '未払い' | '支払済')[] = ['全て', '未払い', '支払済'];
 const deliveryFilters: ('全て' | '配送' | '配達' | '店頭受取')[] = ['全て', '配送', '配達', '店頭受取'];
 
@@ -21,6 +21,7 @@ export default function ReceptionsPage() {
   useEffect(() => { load(); }, []);
 
   const filtered = receptions.filter(r => {
+    if (r.is_archived) return false;
     if (filter !== '全て' && r.status !== filter) return false;
     if (paymentFilter !== '全て' && r.payment_status !== paymentFilter) return false;
     if (deliveryFilter !== '全て' && r.delivery_method !== deliveryFilter) return false;
@@ -32,11 +33,10 @@ export default function ReceptionsPage() {
     load();
   };
 
-  const handleDelete = async (id: string, customerName: string) => {
-    if (!confirm(`${customerName} の受付を削除しますか？`)) return;
-    // 楽観的に即時反映
-    setReceptions(prev => prev.filter(r => r.id !== id));
+  const handleArchive = async (id: string, customerName: string) => {
+    if (!confirm(`${customerName} の受付をアーカイブしますか？`)) return;
     await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
+    load();
   };
 
   return (
@@ -60,7 +60,7 @@ export default function ReceptionsPage() {
               }`}
             >
               {s}
-              {s !== '全て' && <span className="ml-1 opacity-60">({receptions.filter(r => r.status === s).length})</span>}
+              {s !== '全て' && <span className="ml-1 opacity-60">({receptions.filter(r => !r.is_archived && r.status === s).length})</span>}
             </button>
           ))}
         </div>
@@ -107,29 +107,30 @@ export default function ReceptionsPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <Link href={`/customers/${r.customer_id}`} className="text-base font-bold text-gray-900 hover:text-violet-700 transition-colors">
-                    {r.customer_name}
+                    {r.customer_name_snapshot}
                   </Link>
                   <StatusBadge status={r.delivery_method} />
+                  <StatusBadge status={r.status} />
                 </div>
                 <p className="text-sm text-gray-500">
                   {r.desired_date || '日程未定'} {r.desired_time && `/ ${r.desired_time}`}
                 </p>
                 {r.items_note && (
-                  <p className="text-sm text-gray-600 mt-1">{r.items_note}</p>
+                  <p className="text-sm text-gray-600 mt-1 line-clamp-2">{r.items_note}</p>
                 )}
                 <div className="flex items-center gap-3 mt-1.5">
-                  <span className={`text-xs font-medium ${r.payment_method === '未収' && r.payment_status === '未払い' ? 'text-red-600' : 'text-gray-500'}`}>
-                    {r.payment_method}・{r.payment_status}
+                  <span className={`text-xs font-medium ${r.payment_method === '未定' && r.payment_status === '未払い' ? 'text-red-600' : 'text-gray-500'}`}>
+                    {r.payment_method} / {r.payment_status}
                   </span>
-                  {r.address && (
+                  {r.customer_address_snapshot && (
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.customer_address_snapshot)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-blue-500 hover:text-blue-700"
-                      title={r.address}
+                      title={r.customer_address_snapshot}
                     >
-                      📍Maps
+                      Maps
                     </a>
                   )}
                 </div>
@@ -141,24 +142,21 @@ export default function ReceptionsPage() {
                   ¥{r.total.toLocaleString()}
                 </Link>
                 <div className="flex items-center gap-2">
-                  <StatusBadge status={r.status} />
                   <select
                     className="text-xs border border-gray-200 rounded-lg px-2 py-1 text-gray-600 focus:outline-none focus:ring-2 focus:ring-violet-500 bg-white"
                     value={r.status}
                     onChange={e => handleStatusChange(r.id, e.target.value as ReceptionStatus)}
                   >
                     <option value="相談中">相談中</option>
-                    <option value="仮予約">仮予約</option>
-                    <option value="注文確定">注文確定</option>
-                    <option value="準備中">準備中</option>
-                    <option value="受渡し待ち">受渡し待ち</option>
+                    <option value="受付済み">受付済み</option>
+                    <option value="会計待ち">会計待ち</option>
                     <option value="完了">完了</option>
                     <option value="キャンセル">キャンセル</option>
                   </select>
                   <button
-                    onClick={() => handleDelete(r.id, r.customer_name)}
+                    onClick={() => handleArchive(r.id, r.customer_name_snapshot)}
                     className="text-xs text-red-400 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
-                    title="削除"
+                    title="アーカイブ"
                   >
                     ✕
                   </button>

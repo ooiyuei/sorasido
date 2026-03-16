@@ -44,15 +44,19 @@ export default function CalendarPage() {
     return days;
   }, [year, month]);
 
+  // Exclude キャンセル from all
+  const activeReceptions = useMemo(() =>
+    receptions.filter(r => r.status !== 'キャンセル' && r.desired_date),
+  [receptions]);
+
   const receptionsByDate = useMemo(() => {
     const map: Record<string, Reception[]> = {};
-    for (const r of receptions) {
-      if (r.status === 'キャンセル' || r.status === '相談中' || !r.desired_date) continue;
+    for (const r of activeReceptions) {
       if (!map[r.desired_date]) map[r.desired_date] = [];
       map[r.desired_date].push(r);
     }
     return map;
-  }, [receptions]);
+  }, [activeReceptions]);
 
   const prevMonth = () => { const d = new Date(year, month - 2, 1); setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
   const nextMonth = () => { const d = new Date(year, month, 1); setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
@@ -61,26 +65,60 @@ export default function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const selectedReceptions = selectedDate ? (receptionsByDate[selectedDate] || []) : [];
 
-  const dotColors = ['bg-violet-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-sky-400'];
+  // Preparation summary for selected date
+  const prepSummary = useMemo(() => {
+    if (!selectedDate) return null;
+    const dayRecs = receptionsByDate[selectedDate] || [];
+    // Aggregate variety quantities
+    const varietyMap: Record<string, { name: string; count: number; texts: string[] }> = {};
+    let setCount = 0;
+    let boxCount = 0;
+    const deliveryCounts: Record<string, number> = { '配送': 0, '配達': 0, '店頭受取': 0 };
+
+    for (const r of dayRecs) {
+      boxCount += r.box_count || 0;
+      if (r.delivery_method in deliveryCounts) {
+        deliveryCounts[r.delivery_method]++;
+      }
+      for (const item of (r.items || [])) {
+        if (item.set_id) {
+          setCount++;
+        } else if (item.variety_id && item.variety) {
+          const key = item.variety_id;
+          if (!varietyMap[key]) varietyMap[key] = { name: item.variety.name, count: 0, texts: [] };
+          varietyMap[key].count += item.quantity || 0;
+          if (item.planned_quantity_text) varietyMap[key].texts.push(item.planned_quantity_text);
+        }
+      }
+    }
+
+    return {
+      varieties: Object.values(varietyMap),
+      setCount,
+      boxCount,
+      deliveryCounts,
+      total: dayRecs.length,
+    };
+  }, [selectedDate, receptionsByDate]);
 
   const buildGoogleCalendarUrl = (r: Reception) => {
-    const title = encodeURIComponent(`受渡し: ${r.customer_name}`);
+    const title = encodeURIComponent(`受渡し: ${r.customer_name_snapshot}`);
     const date = (r.desired_date || '').replace(/-/g, '');
-    const startDate = date;
-    const endDate = date;
-    const location = encodeURIComponent(r.address || '');
+    const location = encodeURIComponent(r.customer_address_snapshot || '');
     const details = encodeURIComponent(
-      `内容: ${r.items_note || '-'}\n電話: ${r.phone || '-'}\n支払: ${r.payment_method} (${r.payment_status})\n配達方法: ${r.delivery_method}`
+      `内容: ${r.items_note || '-'}\n電話: ${r.customer_phone_snapshot || '-'}\n配達方法: ${r.delivery_method}`
     );
-    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&location=${location}&details=${details}`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${date}/${date}&location=${location}&details=${details}`;
   };
+
+  const dotColors = ['bg-violet-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-sky-400'];
 
   return (
     <div className="space-y-5">
       <h1 className="text-xl font-bold text-gray-900">カレンダー</h1>
 
       <div className="flex flex-col lg:flex-row gap-5">
-        {/* Left: Calendar */}
+        {/* Left: Calendar grid */}
         <div className="lg:w-[60%] space-y-4">
           <div className="flex items-center justify-between bg-white rounded-xl border border-gray-200 shadow-sm px-4 py-3">
             <button onClick={prevMonth} className="px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">← 前月</button>
@@ -119,7 +157,7 @@ export default function CalendarPage() {
                         </div>
                         {dayReceptions.slice(0, 2).map(r => (
                           <div key={r.id} className="text-[10px] truncate px-1 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
-                            {r.customer_name}
+                            {r.customer_name_snapshot}
                           </div>
                         ))}
                         {dayReceptions.length > 2 && (
@@ -134,8 +172,62 @@ export default function CalendarPage() {
           </div>
         </div>
 
-        {/* Right: Day detail */}
-        <div className="lg:w-[40%]">
+        {/* Right: Summary + reception list */}
+        <div className="lg:w-[40%] space-y-4">
+          {/* Preparation summary */}
+          {selectedDate && prepSummary && prepSummary.total > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="px-4 py-3 border-b border-gray-100">
+                <h3 className="text-sm font-semibold text-gray-800">本日の準備量 ({selectedDate})</h3>
+              </div>
+              <div className="p-4 space-y-3">
+                {/* Variety aggregation */}
+                {prepSummary.varieties.length > 0 && (
+                  <div>
+                    <p className="text-xs text-gray-500 font-semibold mb-1.5">品種別必要量</p>
+                    <div className="space-y-1">
+                      {prepSummary.varieties.map(v => (
+                        <div key={v.name} className="flex items-center justify-between text-sm">
+                          <span className="font-medium text-gray-900">{v.name}</span>
+                          <span className="text-gray-600">
+                            {v.texts.length > 0 ? v.texts.join(', ') : `${v.count}個`}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-2 pt-2 border-t border-gray-100">
+                  <div className="text-center">
+                    <p className="text-xs text-gray-400">セット数</p>
+                    <p className="text-lg font-bold text-gray-900">{prepSummary.setCount}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-400">箱数</p>
+                    <p className="text-lg font-bold text-gray-900">{prepSummary.boxCount}</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xs text-gray-400">合計件数</p>
+                    <p className="text-lg font-bold text-gray-900">{prepSummary.total}</p>
+                  </div>
+                </div>
+
+                {/* Delivery method counts */}
+                <div className="flex gap-2 pt-2 border-t border-gray-100">
+                  {Object.entries(prepSummary.deliveryCounts).map(([method, count]) => (
+                    <div key={method} className="flex items-center gap-1">
+                      <StatusBadge status={method} />
+                      <span className="text-sm font-semibold text-gray-700">{count}件</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Individual reception list */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm lg:sticky lg:top-4">
             {selectedDate ? (
               <>
@@ -153,10 +245,11 @@ export default function CalendarPage() {
                             <div className="flex items-start justify-between mb-1.5">
                               <div>
                                 <span className="text-xs text-gray-500 mr-2">{r.desired_time || '時間未定'}</span>
-                                <span className="font-semibold text-sm text-gray-900">{r.customer_name}</span>
+                                <span className="font-semibold text-sm text-gray-900">{r.customer_name_snapshot}</span>
                               </div>
                               <div className="flex items-center gap-1">
                                 <StatusBadge status={r.delivery_method} />
+                                <StatusBadge status={r.weighed ? '計量済み' : '未計量'} />
                                 <StatusBadge status={r.status} />
                               </div>
                             </div>
@@ -164,36 +257,26 @@ export default function CalendarPage() {
                               <p className="text-xs text-gray-500 mt-1">{r.items_note}</p>
                             )}
                           </Link>
-                          {r.address && (
-                            <div className="mt-1.5 space-y-1.5">
+                          <div className="mt-1.5 flex gap-2">
+                            {r.customer_address_snapshot && (
                               <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.customer_address_snapshot)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-[11px] text-violet-600 hover:underline block"
+                                className="text-[11px] px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 transition-colors"
                               >
-                                📍 {r.address}
+                                Maps
                               </a>
-                              <div className="flex gap-2">
-                                <a
-                                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(r.address)}`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[11px] px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 transition-colors"
-                                >
-                                  ルート案内
-                                </a>
-                                <a
-                                  href={buildGoogleCalendarUrl(r)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors"
-                                >
-                                  Googleカレンダーに追加
-                                </a>
-                              </div>
-                            </div>
-                          )}
+                            )}
+                            <a
+                              href={buildGoogleCalendarUrl(r)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors"
+                            >
+                              Calendar
+                            </a>
+                          </div>
                         </div>
                       ))}
                     </div>

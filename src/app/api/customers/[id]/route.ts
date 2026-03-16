@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCustomer, updateCustomer, deleteCustomer } from '@/lib/store';
+import { getCustomer, updateCustomer, archiveCustomer } from '@/lib/store';
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -18,7 +18,7 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const ok = deleteCustomer(id);
+  const ok = archiveCustomer(id);
   if (!ok) return NextResponse.json({ error: 'Not found' }, { status: 404 });
   return NextResponse.json({ ok: true });
 }

@@ -4,21 +4,31 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { Customer, Reception } from '@/types';
 
-const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
+const inputCls = 'border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full';
 
 export default function CustomersPage() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [receptions, setReceptions] = useState<Reception[]>([]);
   const [search, setSearch] = useState('');
   const [isAdding, setIsAdding] = useState(false);
-  const [newForm, setNewForm] = useState({ name: '', phone: '', address: '', memo: '' });
+  const [newForm, setNewForm] = useState({ name: '', phone: '', address: '', line_name: '', memo: '' });
 
   useEffect(() => { load(); }, []);
 
-  const filtered = customers.filter(c =>
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    c.phone.includes(search)
-  );
+  const load = () => {
+    fetch('/api/customers').then(r => r.json()).then(setCustomers);
+    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+  };
+
+  const filtered = customers.filter(c => {
+    const q = search.toLowerCase();
+    return (
+      c.name.toLowerCase().includes(q) ||
+      c.phone.includes(q) ||
+      (c.address || '').toLowerCase().includes(q) ||
+      (c.line_name || '').toLowerCase().includes(q)
+    );
+  });
 
   const getReceptionCount = (customerId: string) =>
     receptions.filter(r => r.customer_id === customerId).length;
@@ -27,24 +37,16 @@ export default function CustomersPage() {
     const customerReceptions = receptions
       .filter(r => r.customer_id === customerId)
       .sort((a, b) => b.created_at.localeCompare(a.created_at));
-    return customerReceptions.length > 0 ? customerReceptions[0].desired_date || customerReceptions[0].created_at.split('T')[0] : '-';
+    return customerReceptions.length > 0
+      ? customerReceptions[0].desired_date || customerReceptions[0].created_at.split('T')[0]
+      : '-';
   };
 
-  const load = () => {
-    fetch('/api/customers').then(r => r.json()).then(setCustomers);
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
-  };
-
-  const handleDelete = async (c: Customer) => {
-    const count = getReceptionCount(c.id);
-    const msg = count > 0
-      ? `${c.name} を削除しますか？関連する受付${count}件もすべて削除されます。`
-      : `${c.name} を削除しますか？`;
-    if (!confirm(msg)) return;
-    // 楽観的に即時反映
+  const handleArchive = async (c: Customer) => {
+    if (!confirm(`${c.name} をアーカイブしますか？`)) return;
     setCustomers(prev => prev.filter(x => x.id !== c.id));
-    setReceptions(prev => prev.filter(r => r.customer_id !== c.id));
     await fetch(`/api/customers/${c.id}`, { method: 'DELETE' });
+    load();
   };
 
   const handleAddCustomer = async () => {
@@ -56,7 +58,7 @@ export default function CustomersPage() {
     });
     if (res.ok) {
       setIsAdding(false);
-      setNewForm({ name: '', phone: '', address: '', memo: '' });
+      setNewForm({ name: '', phone: '', address: '', line_name: '', memo: '' });
       load();
     }
   };
@@ -79,19 +81,20 @@ export default function CustomersPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input className={inputCls} placeholder="名前 *" value={newForm.name} onChange={e => setNewForm(f => ({ ...f, name: e.target.value }))} autoFocus />
             <input className={inputCls} placeholder="電話番号" value={newForm.phone} onChange={e => setNewForm(f => ({ ...f, phone: e.target.value }))} />
-            <input className={`${inputCls} sm:col-span-2`} placeholder="住所" value={newForm.address} onChange={e => setNewForm(f => ({ ...f, address: e.target.value }))} />
+            <input className={inputCls} placeholder="住所" value={newForm.address} onChange={e => setNewForm(f => ({ ...f, address: e.target.value }))} />
+            <input className={inputCls} placeholder="LINE名" value={newForm.line_name} onChange={e => setNewForm(f => ({ ...f, line_name: e.target.value }))} />
             <input className={`${inputCls} sm:col-span-2`} placeholder="メモ" value={newForm.memo} onChange={e => setNewForm(f => ({ ...f, memo: e.target.value }))} />
           </div>
           <div className="flex gap-2 pt-2 border-t border-gray-100">
             <button onClick={handleAddCustomer} className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">保存</button>
-            <button onClick={() => { setIsAdding(false); setNewForm({ name: '', phone: '', address: '', memo: '' }); }} className="text-gray-500 px-4 py-2 text-sm hover:text-gray-700">キャンセル</button>
+            <button onClick={() => { setIsAdding(false); setNewForm({ name: '', phone: '', address: '', line_name: '', memo: '' }); }} className="text-gray-500 px-4 py-2 text-sm hover:text-gray-700">キャンセル</button>
           </div>
         </div>
       )}
 
       <input
-        className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full max-w-sm"
-        placeholder="名前・電話番号で検索..."
+        className="border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full max-w-md"
+        placeholder="名前・電話番号・住所・LINE名で検索..."
         value={search}
         onChange={e => setSearch(e.target.value)}
       />
@@ -107,22 +110,31 @@ export default function CustomersPage() {
                   <Link href={`/customers/${c.id}`} className="text-base font-bold text-gray-900 hover:text-violet-700 transition-colors">
                     {c.name}
                   </Link>
-                  <div className="flex items-center gap-4 mt-1">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-0.5 mt-1">
                     <span className="text-sm text-gray-500">{c.phone || '-'}</span>
                     {c.address && (
                       <span className="text-sm text-gray-400 truncate max-w-[200px]">{c.address}</span>
+                    )}
+                    {c.line_name && (
+                      <span className="text-sm text-green-600">LINE: {c.line_name}</span>
                     )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0 text-sm text-gray-500">
                   <span>受付 {count}件</span>
                   <span>最終: {lastDate}</span>
-                  <button
-                    onClick={(e) => { e.preventDefault(); handleDelete(c); }}
-                    className="text-xs text-red-400 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
-                    title="削除"
+                  <Link
+                    href={`/receptions/new?customer_id=${c.id}`}
+                    className="text-xs text-violet-600 hover:text-violet-800 px-2 py-1 rounded hover:bg-violet-50 transition-colors font-medium"
                   >
-                    ✕
+                    新規受付
+                  </Link>
+                  <button
+                    onClick={(e) => { e.preventDefault(); handleArchive(c); }}
+                    className="text-xs text-red-400 hover:text-red-600 px-1.5 py-1 rounded hover:bg-red-50 transition-colors"
+                    title="アーカイブ"
+                  >
+                    アーカイブ
                   </button>
                 </div>
               </div>
