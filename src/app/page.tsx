@@ -1,65 +1,142 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import StatusBadge from '@/components/StatusBadge';
+import type { Variety, Order } from '@/types';
+
+export default function Dashboard() {
+  const [varieties, setVarieties] = useState<Variety[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+
+  useEffect(() => {
+    fetch('/api/varieties').then(r => r.json()).then(setVarieties);
+    fetch('/api/orders').then(r => r.json()).then(setOrders);
+  }, []);
+
+  const today = new Date().toISOString().split('T')[0];
+  const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+
+  const todayOrders = orders.filter(o => o.scheduled_date === today && o.status !== 'キャンセル');
+  const tomorrowOrders = orders.filter(o => o.scheduled_date === tomorrow && o.status !== 'キャンセル');
+  const unpaidOrders = orders.filter(o => o.payment_method === '未収' && o.status !== 'キャンセル' && o.status !== '完了');
+  const activeOrders = orders.filter(o => o.status !== 'キャンセル' && o.status !== '完了');
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="space-y-6">
+      <h1 className="text-xl font-bold text-gray-900">ダッシュボード</h1>
+
+      {/* 上段: サマリーカード */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <SummaryCard label="本日の配達" value={todayOrders.length} color="text-violet-700" bg="bg-violet-50" />
+        <SummaryCard label="明日の配達" value={tomorrowOrders.length} color="text-blue-700" bg="bg-blue-50" />
+        <SummaryCard label="未払い注文" value={unpaidOrders.length} color="text-red-600" bg="bg-red-50" />
+        <SummaryCard label="進行中注文" value={activeOrders.length} color="text-emerald-700" bg="bg-emerald-50" />
+      </div>
+
+      {/* 中段: 本日の配達 + 未払い */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* 本日の配達 */}
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-800">本日の配達・受取</h2>
+            <Link href="/calendar" className="text-xs text-violet-600 hover:underline">カレンダー →</Link>
+          </div>
+          <div className="p-3">
+            {todayOrders.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">本日の予定はありません</p>
+            ) : (
+              <div className="space-y-2">
+                {todayOrders.map(o => (
+                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div>
+                      <p className="font-medium text-sm text-gray-900">{o.customer_name}</p>
+                      <p className="text-xs text-gray-500">{o.scheduled_time || '時間未定'}</p>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <StatusBadge status={o.delivery_method} />
+                      <StatusBadge status={o.status} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* 未払い注文 */}
+        <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+            <h2 className="text-sm font-semibold text-gray-800">未払い注文</h2>
+            <Link href="/orders" className="text-xs text-violet-600 hover:underline">注文一覧 →</Link>
+          </div>
+          <div className="p-3">
+            {unpaidOrders.length === 0 ? (
+              <p className="text-gray-400 text-sm text-center py-4">未払いはありません</p>
+            ) : (
+              <div className="space-y-2">
+                {unpaidOrders.map(o => (
+                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center justify-between p-2.5 hover:bg-gray-50 rounded-lg transition-colors">
+                    <div>
+                      <p className="font-medium text-sm text-gray-900">{o.customer_name}</p>
+                      <p className="text-xs text-gray-500">{o.scheduled_date}</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-sm text-gray-900">¥{o.total.toLocaleString()}</span>
+                      <StatusBadge status={o.status} />
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {/* 下段: 品種別在庫 */}
+      <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
+          <h2 className="text-sm font-semibold text-gray-800">品種別 在庫状況</h2>
+          <Link href="/varieties" className="text-xs text-violet-600 hover:underline">詳細 →</Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+        <div className="p-4 space-y-4">
+          {varieties.map(v => {
+            const remaining = v.expected_quantity - v.reserved_quantity;
+            const pct = v.expected_quantity > 0 ? (v.reserved_quantity / v.expected_quantity) * 100 : 0;
+            return (
+              <div key={v.id}>
+                <div className="flex justify-between items-baseline mb-1.5">
+                  <span className="text-sm font-semibold text-gray-800">{v.name}</span>
+                  <div className="text-sm">
+                    <span className="text-gray-400">残 </span>
+                    <span className={`font-bold ${remaining <= 10 ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {remaining}
+                    </span>
+                    <span className="text-gray-300"> / {v.expected_quantity}</span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-100 rounded-full h-2.5">
+                  <div
+                    className={`h-2.5 rounded-full transition-all ${
+                      pct > 80 ? 'bg-red-400' : pct > 50 ? 'bg-amber-400' : 'bg-emerald-400'
+                    }`}
+                    style={{ width: `${Math.min(pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </main>
+      </section>
+    </div>
+  );
+}
+
+function SummaryCard({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
+  return (
+    <div className={`${bg} rounded-xl p-4 border border-gray-200/50`}>
+      <p className="text-xs text-gray-500 font-medium">{label}</p>
+      <p className={`text-3xl font-bold mt-1 ${color}`}>{value}</p>
     </div>
   );
 }
