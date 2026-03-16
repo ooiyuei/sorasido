@@ -3,16 +3,16 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
-import type { Order } from '@/types';
+import type { Reception } from '@/types';
 
 export default function CalendarPage() {
-  const [orders, setOrders] = useState<Order[]>([]);
+  const [receptions, setReceptions] = useState<Reception[]>([]);
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => { fetch('/api/orders').then(r => r.json()).then(setOrders); }, []);
+  useEffect(() => { fetch('/api/receptions').then(r => r.json()).then(setReceptions); }, []);
 
   const [year, month] = currentMonth.split('-').map(Number);
 
@@ -44,41 +44,40 @@ export default function CalendarPage() {
     return days;
   }, [year, month]);
 
-  const ordersByDate = useMemo(() => {
-    const map: Record<string, Order[]> = {};
-    for (const o of orders) {
-      if (o.status === 'キャンセル' || !o.scheduled_date) continue;
-      if (!map[o.scheduled_date]) map[o.scheduled_date] = [];
-      map[o.scheduled_date].push(o);
+  const receptionsByDate = useMemo(() => {
+    const map: Record<string, Reception[]> = {};
+    for (const r of receptions) {
+      if (r.status === 'キャンセル' || r.status === '相談中' || !r.desired_date) continue;
+      if (!map[r.desired_date]) map[r.desired_date] = [];
+      map[r.desired_date].push(r);
     }
     return map;
-  }, [orders]);
+  }, [receptions]);
 
   const prevMonth = () => { const d = new Date(year, month - 2, 1); setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
   const nextMonth = () => { const d = new Date(year, month, 1); setCurrentMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`); };
 
   const today = new Date().toISOString().split('T')[0];
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
-  const selectedOrders = selectedDate ? (ordersByDate[selectedDate] || []) : [];
+  const selectedReceptions = selectedDate ? (receptionsByDate[selectedDate] || []) : [];
 
   const dotColors = ['bg-violet-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-400', 'bg-sky-400'];
 
-  const buildGoogleCalendarUrl = (o: Order) => {
-    const title = encodeURIComponent(`配達: ${o.customer_name}`);
-    const date = (o.scheduled_date || '').replace(/-/g, '');
+  const buildGoogleCalendarUrl = (r: Reception) => {
+    const title = encodeURIComponent(`受渡し: ${r.customer_name}`);
+    const date = (r.desired_date || '').replace(/-/g, '');
     const startDate = date;
     const endDate = date;
-    const location = encodeURIComponent(o.address || '');
-    const itemNames = (o.items || []).map(i => i.set?.name || i.variety?.name || '-').join(', ');
+    const location = encodeURIComponent(r.address || '');
     const details = encodeURIComponent(
-      `商品: ${itemNames}\n電話: ${o.phone || '-'}\n支払: ${o.payment_method} (${o.payment_status})\n配達方法: ${o.delivery_method}`
+      `内容: ${r.items_note || '-'}\n電話: ${r.phone || '-'}\n支払: ${r.payment_method} (${r.payment_status})\n配達方法: ${r.delivery_method}`
     );
     return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${startDate}/${endDate}&location=${location}&details=${details}`;
   };
 
   return (
     <div className="space-y-5">
-      <h1 className="text-xl font-bold text-gray-900">配達カレンダー</h1>
+      <h1 className="text-xl font-bold text-gray-900">カレンダー</h1>
 
       <div className="flex flex-col lg:flex-row gap-5">
         {/* Left: Calendar */}
@@ -97,7 +96,7 @@ export default function CalendarPage() {
             </div>
             <div className="grid grid-cols-7">
               {calendarDays.map(({ key, date, day, isCurrentMonth }) => {
-                const dayOrders = ordersByDate[date] || [];
+                const dayReceptions = receptionsByDate[date] || [];
                 const isToday = date === today;
                 const isSelected = date === selectedDate;
                 return (
@@ -111,20 +110,20 @@ export default function CalendarPage() {
                     `}
                   >
                     <div className={`text-[11px] font-medium mb-0.5 ${isToday ? 'text-violet-700 font-bold' : isCurrentMonth ? 'text-gray-600' : 'text-gray-300'}`}>{day}</div>
-                    {dayOrders.length > 0 && (
+                    {dayReceptions.length > 0 && (
                       <div className="space-y-0.5">
                         <div className="flex gap-0.5 px-0.5">
-                          {dayOrders.slice(0, 5).map((o, i) => (
-                            <div key={o.id} className={`w-2 h-2 rounded-full ${dotColors[i % dotColors.length]}`} />
+                          {dayReceptions.slice(0, 5).map((r, i) => (
+                            <div key={r.id} className={`w-2 h-2 rounded-full ${dotColors[i % dotColors.length]}`} />
                           ))}
                         </div>
-                        {dayOrders.slice(0, 2).map(o => (
-                          <div key={o.id} className="text-[10px] truncate px-1 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
-                            {o.customer_name}
+                        {dayReceptions.slice(0, 2).map(r => (
+                          <div key={r.id} className="text-[10px] truncate px-1 py-0.5 rounded bg-violet-100 text-violet-700 font-medium">
+                            {r.customer_name}
                           </div>
                         ))}
-                        {dayOrders.length > 2 && (
-                          <div className="text-[10px] text-gray-400 px-1">+{dayOrders.length - 2}件</div>
+                        {dayReceptions.length > 2 && (
+                          <div className="text-[10px] text-gray-400 px-1">+{dayReceptions.length - 2}件</div>
                         )}
                       </div>
                     )}
@@ -141,40 +140,43 @@ export default function CalendarPage() {
             {selectedDate ? (
               <>
                 <div className="px-4 py-3 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-800">{selectedDate} の配達一覧</h3>
+                  <h3 className="text-sm font-semibold text-gray-800">{selectedDate} の予定</h3>
                 </div>
                 <div className="p-3">
-                  {selectedOrders.length === 0 ? (
+                  {selectedReceptions.length === 0 ? (
                     <p className="text-gray-400 text-sm text-center py-4">この日の予定はありません</p>
                   ) : (
                     <div className="space-y-3">
-                      {selectedOrders.map(o => (
-                        <div key={o.id} className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50/50 transition-colors">
-                          <Link href={`/orders/${o.id}`} className="block">
+                      {selectedReceptions.map(r => (
+                        <div key={r.id} className="p-3 rounded-lg border border-gray-100 hover:bg-gray-50/50 transition-colors">
+                          <Link href={`/receptions/${r.id}`} className="block">
                             <div className="flex items-start justify-between mb-1.5">
                               <div>
-                                <span className="text-xs text-gray-500 mr-2">{o.scheduled_time || '時間未定'}</span>
-                                <span className="font-semibold text-sm text-gray-900">{o.customer_name}</span>
+                                <span className="text-xs text-gray-500 mr-2">{r.desired_time || '時間未定'}</span>
+                                <span className="font-semibold text-sm text-gray-900">{r.customer_name}</span>
                               </div>
                               <div className="flex items-center gap-1">
-                                <StatusBadge status={o.delivery_method} />
-                                <StatusBadge status={o.status} />
+                                <StatusBadge status={r.delivery_method} />
+                                <StatusBadge status={r.status} />
                               </div>
                             </div>
+                            {r.items_note && (
+                              <p className="text-xs text-gray-500 mt-1">{r.items_note}</p>
+                            )}
                           </Link>
-                          {o.address && (
+                          {r.address && (
                             <div className="mt-1.5 space-y-1.5">
                               <a
-                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.address)}`}
+                                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(r.address)}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-[11px] text-violet-600 hover:underline block"
                               >
-                                📍 {o.address}
+                                📍 {r.address}
                               </a>
                               <div className="flex gap-2">
                                 <a
-                                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(o.address)}`}
+                                  href={`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(r.address)}`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[11px] px-2 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-200 font-medium hover:bg-blue-100 transition-colors"
@@ -182,7 +184,7 @@ export default function CalendarPage() {
                                   ルート案内
                                 </a>
                                 <a
-                                  href={buildGoogleCalendarUrl(o)}
+                                  href={buildGoogleCalendarUrl(r)}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="text-[11px] px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium hover:bg-emerald-100 transition-colors"

@@ -3,86 +3,65 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
-import type { Variety, Order, Staff } from '@/types';
+import type { Variety, Reception } from '@/types';
 
 export default function Dashboard() {
   const [varieties, setVarieties] = useState<Variety[]>([]);
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
-  const [staffFilter, setStaffFilter] = useState<string>('');
+  const [receptions, setReceptions] = useState<Reception[]>([]);
 
   useEffect(() => {
     fetch('/api/varieties').then(r => r.json()).then(setVarieties);
-    fetch('/api/orders').then(r => r.json()).then(setOrders);
-    fetch('/api/staff').then(r => r.json()).then(setStaff);
+    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
 
-  const filterByStaff = (list: Order[]) =>
-    staffFilter ? list.filter(o => o.assignee_id === staffFilter || o.delivery_staff_id === staffFilter) : list;
-
-  const todayOrders = filterByStaff(orders.filter(o => o.scheduled_date === today && o.status !== 'キャンセル'));
-  const tomorrowOrders = filterByStaff(orders.filter(o => o.scheduled_date === tomorrow && o.status !== 'キャンセル'));
-  const unpaidOrders = filterByStaff(orders.filter(o => o.payment_method === '未収' && o.status !== 'キャンセル' && o.status !== '完了'));
-  const activeOrders = filterByStaff(orders.filter(o => o.status !== 'キャンセル' && o.status !== '完了'));
+  const todayReceptions = receptions.filter(r => r.desired_date === today && r.status !== 'キャンセル' && r.status !== '相談中');
+  const tomorrowReceptions = receptions.filter(r => r.desired_date === tomorrow && r.status !== 'キャンセル' && r.status !== '相談中');
+  const unpaidReceptions = receptions.filter(r => r.payment_method === '未収' && r.status !== 'キャンセル' && r.status !== '完了');
+  const activeReceptions = receptions.filter(r => r.status !== 'キャンセル' && r.status !== '完了');
 
   const mapsUrl = (address: string) =>
     `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">ダッシュボード</h1>
-        <div className="flex items-center gap-2">
-          <label className="text-xs text-gray-500 font-medium">担当者フィルタ</label>
-          <select
-            value={staffFilter}
-            onChange={e => setStaffFilter(e.target.value)}
-            className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent"
-          >
-            <option value="">全員</option>
-            {staff.filter(s => s.is_active).map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        </div>
-      </div>
+      <h1 className="text-xl font-bold text-gray-900">ダッシュボード</h1>
 
-      {/* 上段: サマリーカード */}
+      {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <SummaryCard label="本日配達" value={todayOrders.length} color="text-violet-700" bg="bg-violet-50" />
-        <SummaryCard label="明日配達" value={tomorrowOrders.length} color="text-blue-700" bg="bg-blue-50" />
-        <SummaryCard label="未払い注文" value={unpaidOrders.length} color="text-red-600" bg="bg-red-50" />
-        <SummaryCard label="進行中注文" value={activeOrders.length} color="text-emerald-700" bg="bg-emerald-50" />
+        <SummaryCard label="本日受渡し" value={todayReceptions.length} color="text-violet-700" bg="bg-violet-50" />
+        <SummaryCard label="明日受渡し" value={tomorrowReceptions.length} color="text-blue-700" bg="bg-blue-50" />
+        <SummaryCard label="未払い" value={unpaidReceptions.length} color="text-red-600" bg="bg-red-50" />
+        <SummaryCard label="進行中" value={activeReceptions.length} color="text-emerald-700" bg="bg-emerald-50" />
       </div>
 
-      {/* 中段: 本日の配達 + 未払い */}
+      {/* Today + Unpaid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* 本日の配達・受取 */}
+        {/* Today */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-800">本日の配達・受取</h2>
+            <h2 className="text-sm font-semibold text-gray-800">本日の受渡し</h2>
             <Link href="/calendar" className="text-xs text-violet-600 hover:underline">カレンダー →</Link>
           </div>
           <div className="p-3">
-            {todayOrders.length === 0 ? (
+            {todayReceptions.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">本日の予定はありません</p>
             ) : (
               <div className="space-y-1">
-                {todayOrders.map(o => (
-                  <div key={o.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
-                    <Link href={`/orders/${o.id}`} className="flex items-center gap-3 flex-1 min-w-0">
-                      <span className="text-xs text-gray-400 font-mono w-12 shrink-0">{o.scheduled_time || '--:--'}</span>
-                      <span className="font-medium text-sm text-gray-900 truncate">{o.customer_name}</span>
+                {todayReceptions.map(r => (
+                  <div key={r.id} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                    <Link href={`/receptions/${r.id}`} className="flex items-center gap-3 flex-1 min-w-0">
+                      <span className="text-xs text-gray-400 font-mono w-12 shrink-0">{r.desired_time || '--:--'}</span>
+                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name}</span>
                     </Link>
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <StatusBadge status={o.delivery_method} />
-                      <StatusBadge status={o.status} />
-                      {o.address && (
+                      <StatusBadge status={r.delivery_method} />
+                      <StatusBadge status={r.status} />
+                      {r.address && (
                         <a
-                          href={mapsUrl(o.address)}
+                          href={mapsUrl(r.address)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-base leading-none hover:opacity-70 transition-opacity"
@@ -99,26 +78,26 @@ export default function Dashboard() {
           </div>
         </section>
 
-        {/* 未払い注文 */}
+        {/* Unpaid */}
         <section className="bg-white rounded-xl border border-gray-200 shadow-sm">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <h2 className="text-sm font-semibold text-gray-800">未払い注文</h2>
-            <Link href="/orders" className="text-xs text-violet-600 hover:underline">注文一覧 →</Link>
+            <h2 className="text-sm font-semibold text-gray-800">未払い</h2>
+            <Link href="/receptions" className="text-xs text-violet-600 hover:underline">受付一覧 →</Link>
           </div>
           <div className="p-3">
-            {unpaidOrders.length === 0 ? (
+            {unpaidReceptions.length === 0 ? (
               <p className="text-gray-400 text-sm text-center py-4">未払いはありません</p>
             ) : (
               <div className="space-y-1">
-                {unpaidOrders.map(o => (
-                  <Link key={o.id} href={`/orders/${o.id}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                {unpaidReceptions.map(r => (
+                  <Link key={r.id} href={`/receptions/${r.id}`} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="flex items-center gap-3 min-w-0">
-                      <span className="text-xs text-gray-400 w-20 shrink-0">{o.scheduled_date}</span>
-                      <span className="font-medium text-sm text-gray-900 truncate">{o.customer_name}</span>
+                      <span className="text-xs text-gray-400 w-20 shrink-0">{r.desired_date}</span>
+                      <span className="font-medium text-sm text-gray-900 truncate">{r.customer_name}</span>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="font-semibold text-sm text-gray-900">¥{o.total.toLocaleString()}</span>
-                      <StatusBadge status={o.status} />
+                      <span className="font-semibold text-sm text-gray-900">¥{r.total.toLocaleString()}</span>
+                      <StatusBadge status={r.status} />
                     </div>
                   </Link>
                 ))}
@@ -128,7 +107,7 @@ export default function Dashboard() {
         </section>
       </div>
 
-      {/* 下段: 品種別在庫 */}
+      {/* Variety stock */}
       <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
           <h2 className="text-sm font-semibold text-gray-800">品種別在庫</h2>

@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import type { Variety, ProductSet, DeliveryMethod, PaymentMethod, Staff } from '@/types';
+import type { Variety, ProductSet, Customer, DeliveryMethod, PaymentMethod, ReceptionStatus } from '@/types';
 
-interface OrderItemForm {
+interface ReceptionItemForm {
   type: 'variety' | 'set';
   id: string;
   quantity: number;
@@ -13,28 +13,56 @@ interface OrderItemForm {
 
 const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
 
-export default function NewOrderPage() {
+export default function NewReceptionPage() {
   const router = useRouter();
   const [varieties, setVarieties] = useState<Variety[]>([]);
   const [sets, setSets] = useState<ProductSet[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [form, setForm] = useState({
-    customer_name: '', phone: '', address: '', has_box: false, packing_note: '',
-    scheduled_date: '', scheduled_time: '',
-    delivery_method: '配達' as DeliveryMethod, payment_method: '現金' as PaymentMethod, status: '確定' as const,
-    assignee_id: '' as string, delivery_staff_id: '' as string,
+    customer_name: '', phone: '', address: '', has_box: false, packing_note: '', items_note: '', memo: '',
+    desired_date: '', desired_time: '',
+    delivery_method: '配達' as DeliveryMethod,
+    payment_method: '現金' as PaymentMethod,
+    status: '相談中' as ReceptionStatus,
+    customer_id: '' as string,
   });
-  const [items, setItems] = useState<OrderItemForm[]>([]);
+  const [items, setItems] = useState<ReceptionItemForm[]>([]);
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const customerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     fetch('/api/varieties').then(r => r.json()).then(setVarieties);
     fetch('/api/sets').then(r => r.json()).then((s: ProductSet[]) => setSets(s.filter(x => x.is_active)));
-    fetch('/api/staff').then(r => r.json()).then(setStaff);
+    fetch('/api/customers').then(r => r.json()).then(setCustomers);
   }, []);
 
-  const getStaffDot = (color: string) => (
-    <span className="inline-block w-2 h-2 rounded-full mr-1.5" style={{ backgroundColor: color }} />
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (customerRef.current && !customerRef.current.contains(e.target as Node)) {
+        setShowCustomerDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const filteredCustomers = customers.filter(c =>
+    c.name.toLowerCase().includes(customerQuery.toLowerCase()) ||
+    c.phone.includes(customerQuery)
   );
+
+  const selectCustomer = (c: Customer) => {
+    setForm(f => ({ ...f, customer_name: c.name, phone: c.phone, address: c.address, customer_id: c.id }));
+    setCustomerQuery(c.name);
+    setShowCustomerDropdown(false);
+  };
+
+  const handleCustomerNameChange = (value: string) => {
+    setCustomerQuery(value);
+    setForm(f => ({ ...f, customer_name: value, customer_id: '' }));
+    setShowCustomerDropdown(value.length > 0);
+  };
 
   const addVarietyItem = () => {
     if (varieties.length) {
@@ -48,7 +76,7 @@ export default function NewOrderPage() {
     }
   };
 
-  const updateItem = (idx: number, updates: Partial<OrderItemForm>) => {
+  const updateItem = (idx: number, updates: Partial<ReceptionItemForm>) => {
     setItems(prev => prev.map((item, i) => {
       if (i !== idx) return item;
       const updated = { ...item, ...updates };
@@ -72,11 +100,9 @@ export default function NewOrderPage() {
 
   const handleSubmit = async () => {
     if (!form.customer_name.trim()) { alert('名前を入力してください'); return; }
-    if (items.length === 0) { alert('商品を追加してください'); return; }
     const body = {
       ...form,
-      assignee_id: form.assignee_id || null,
-      delivery_staff_id: form.delivery_staff_id || null,
+      customer_id: form.customer_id || null,
       items: items.map(i => ({
         variety_id: i.type === 'variety' ? i.id : null,
         set_id: i.type === 'set' ? i.id : null,
@@ -84,31 +110,65 @@ export default function NewOrderPage() {
         unit_price_snapshot: i.unit_price_snapshot,
       })),
     };
-    const res = await fetch('/api/orders', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-    if (res.ok) router.push('/orders');
+    const res = await fetch('/api/receptions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (res.ok) router.push('/receptions');
   };
-
-  const activeStaff = staff.filter(s => s.is_active);
 
   return (
     <div className="space-y-5 max-w-2xl">
-      <h1 className="text-xl font-bold text-gray-900">新規注文</h1>
+      <h1 className="text-xl font-bold text-gray-900">新規受付</h1>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">
-        {/* 顧客情報 */}
+        {/* Customer info */}
         <div className="p-4 space-y-3">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">顧客情報</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input className={inputCls} placeholder="名前 *" value={form.customer_name} onChange={e => setForm(f => ({ ...f, customer_name: e.target.value }))} autoFocus />
+            <div className="relative" ref={customerRef}>
+              <input
+                className={inputCls}
+                placeholder="名前 *"
+                value={customerQuery || form.customer_name}
+                onChange={e => handleCustomerNameChange(e.target.value)}
+                onFocus={() => customerQuery.length > 0 && setShowCustomerDropdown(true)}
+                autoFocus
+              />
+              {showCustomerDropdown && filteredCustomers.length > 0 && (
+                <div className="absolute z-10 top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                  {filteredCustomers.slice(0, 10).map(c => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => selectCustomer(c)}
+                      className="w-full text-left px-3 py-2 hover:bg-violet-50 transition-colors text-sm"
+                    >
+                      <span className="font-medium text-gray-900">{c.name}</span>
+                      {c.phone && <span className="ml-2 text-gray-400">{c.phone}</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <input className={inputCls} placeholder="電話番号" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} />
             <input className={`${inputCls} sm:col-span-2`} placeholder="住所" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
           </div>
         </div>
 
-        {/* 配達情報 */}
+        {/* Status + Delivery info */}
         <div className="p-4 space-y-3">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">配達情報</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">受付情報</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div>
+              <label className="text-[11px] text-gray-500 mb-1 block">ステータス</label>
+              <select className={inputCls} value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as ReceptionStatus }))}>
+                <option value="相談中">相談中</option>
+                <option value="仮予約">仮予約</option>
+                <option value="注文確定">注文確定</option>
+                <option value="準備中">準備中</option>
+                <option value="受渡し待ち">受渡し待ち</option>
+                <option value="完了">完了</option>
+                <option value="キャンセル">キャンセル</option>
+              </select>
+            </div>
             <div>
               <label className="text-[11px] text-gray-500 mb-1 block">配達方法</label>
               <select className={inputCls} value={form.delivery_method} onChange={e => setForm(f => ({ ...f, delivery_method: e.target.value as DeliveryMethod }))}>
@@ -118,47 +178,40 @@ export default function NewOrderPage() {
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 mb-1 block">日程</label>
-              <input className={inputCls} type="date" value={form.scheduled_date} onChange={e => setForm(f => ({ ...f, scheduled_date: e.target.value }))} />
-            </div>
-            <div>
-              <label className="text-[11px] text-gray-500 mb-1 block">時間</label>
-              <input className={inputCls} placeholder="午前 / 10:00 など" value={form.scheduled_time} onChange={e => setForm(f => ({ ...f, scheduled_time: e.target.value }))} />
+              <label className="text-[11px] text-gray-500 mb-1 block">支払方法</label>
+              <select className={inputCls} value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as PaymentMethod }))}>
+                <option value="現金">現金</option>
+                <option value="PayPay">PayPay</option>
+                <option value="未収">未収</option>
+              </select>
             </div>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="text-[11px] text-gray-500 mb-1 block">担当者</label>
-              <select className={inputCls} value={form.assignee_id} onChange={e => setForm(f => ({ ...f, assignee_id: e.target.value }))}>
-                <option value="">未選択</option>
-                {activeStaff.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-              {form.assignee_id && (() => {
-                const s = staff.find(s => s.id === form.assignee_id);
-                return s ? <span className="text-[11px] text-gray-400 mt-1 flex items-center">{getStaffDot(s.color)}{s.name}</span> : null;
-              })()}
+              <label className="text-[11px] text-gray-500 mb-1 block">希望日</label>
+              <input className={inputCls} type="date" value={form.desired_date} onChange={e => setForm(f => ({ ...f, desired_date: e.target.value }))} />
             </div>
             <div>
-              <label className="text-[11px] text-gray-500 mb-1 block">配達担当</label>
-              <select className={inputCls} value={form.delivery_staff_id} onChange={e => setForm(f => ({ ...f, delivery_staff_id: e.target.value }))}>
-                <option value="">未選択</option>
-                {activeStaff.map(s => (
-                  <option key={s.id} value={s.id}>{s.name}</option>
-                ))}
-              </select>
-              {form.delivery_staff_id && (() => {
-                const s = staff.find(s => s.id === form.delivery_staff_id);
-                return s ? <span className="text-[11px] text-gray-400 mt-1 flex items-center">{getStaffDot(s.color)}{s.name}</span> : null;
-              })()}
+              <label className="text-[11px] text-gray-500 mb-1 block">希望時間</label>
+              <input className={inputCls} placeholder="午前 / 10:00 など" value={form.desired_time} onChange={e => setForm(f => ({ ...f, desired_time: e.target.value }))} />
             </div>
           </div>
         </div>
 
-        {/* 商品明細 */}
+        {/* Items note */}
         <div className="p-4 space-y-3">
-          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">商品明細</h2>
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">内容メモ</h2>
+          <textarea
+            className={`${inputCls} min-h-[60px]`}
+            placeholder="相談内容、希望商品のメモなど（商品が未確定の段階でも記入できます）"
+            value={form.items_note}
+            onChange={e => setForm(f => ({ ...f, items_note: e.target.value }))}
+          />
+        </div>
+
+        {/* Items */}
+        <div className="p-4 space-y-3">
+          <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">商品明細（任意）</h2>
           {items.map((item, idx) => (
             <div key={idx} className="flex items-center gap-2 flex-wrap">
               <span className={`text-[11px] px-2 py-0.5 rounded-md border font-medium ${item.type === 'set' ? 'bg-violet-50 text-violet-700 border-violet-200' : 'bg-emerald-50 text-emerald-700 border-emerald-200'}`}>
@@ -182,27 +235,18 @@ export default function NewOrderPage() {
           </div>
         </div>
 
-        {/* オプション */}
+        {/* Options */}
         <div className="p-4 space-y-3">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">オプション</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <label className="flex items-center gap-2 text-sm text-gray-700">
-              <input type="checkbox" className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" checked={form.has_box} onChange={e => setForm(f => ({ ...f, has_box: e.target.checked }))} />
-              箱あり
-            </label>
-            <div>
-              <label className="text-[11px] text-gray-500 mb-1 block">支払方法</label>
-              <select className={inputCls} value={form.payment_method} onChange={e => setForm(f => ({ ...f, payment_method: e.target.value as PaymentMethod }))}>
-                <option value="現金">現金</option>
-                <option value="PayPay">PayPay</option>
-                <option value="未収">未収</option>
-              </select>
-            </div>
-          </div>
+          <label className="flex items-center gap-2 text-sm text-gray-700">
+            <input type="checkbox" className="rounded border-gray-300 text-violet-600 focus:ring-violet-500" checked={form.has_box} onChange={e => setForm(f => ({ ...f, has_box: e.target.checked }))} />
+            箱あり
+          </label>
           <input className={inputCls} placeholder="組分け内容メモ" value={form.packing_note} onChange={e => setForm(f => ({ ...f, packing_note: e.target.value }))} />
+          <input className={inputCls} placeholder="メモ" value={form.memo} onChange={e => setForm(f => ({ ...f, memo: e.target.value }))} />
         </div>
 
-        {/* 合計 */}
+        {/* Total */}
         <div className="p-4 space-y-2 bg-gray-50/50">
           <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wide">合計</h2>
           <div className="flex justify-between text-sm text-gray-600">
@@ -218,9 +262,9 @@ export default function NewOrderPage() {
           </div>
         </div>
 
-        {/* 送信 */}
+        {/* Submit */}
         <div className="p-4 flex gap-3">
-          <button onClick={handleSubmit} className="bg-violet-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-violet-700 transition-colors">注文を登録</button>
+          <button onClick={handleSubmit} className="bg-violet-600 text-white px-6 py-2.5 rounded-lg font-medium hover:bg-violet-700 transition-colors">受付を登録</button>
           <button onClick={() => router.back()} className="text-gray-500 px-4 py-2.5 hover:text-gray-700 text-sm">キャンセル</button>
         </div>
       </div>

@@ -5,10 +5,10 @@ import { usePathname } from 'next/navigation';
 
 const navItems = [
   { href: '/', label: 'ダッシュボード', icon: '📊' },
-  { href: '/varieties', label: '品種管理', icon: '🍇' },
-  { href: '/sets', label: 'セット管理', icon: '📦' },
-  { href: '/reservations', label: '予約', icon: '📋' },
-  { href: '/orders', label: '注文', icon: '🛒' },
+  { href: '/receptions', label: '受付管理', icon: '📋' },
+  { href: '/customers', label: '顧客', icon: '👤' },
+  { href: '/varieties', label: '品種', icon: '🍇' },
+  { href: '/sets', label: 'セット', icon: '📦' },
   { href: '/calendar', label: 'カレンダー', icon: '📅' },
 ];
 
@@ -21,7 +21,7 @@ export default function Navigation() {
       <aside className="hidden md:flex md:flex-col md:w-56 bg-white border-r border-gray-200 min-h-screen fixed left-0 top-0 z-30 shadow-sm">
         <div className="px-5 py-5 border-b border-gray-100">
           <h1 className="text-lg font-bold text-violet-700 tracking-tight">ソラしどファーム</h1>
-          <p className="text-[11px] text-gray-400 mt-0.5">予約・注文管理システム</p>
+          <p className="text-[11px] text-gray-400 mt-0.5">受付管理システム</p>
         </div>
         <nav className="flex-1 px-3 py-3 space-y-0.5">
           {navItems.map(item => {
@@ -43,7 +43,7 @@ export default function Navigation() {
           })}
         </nav>
         <div className="px-5 py-3 border-t border-gray-100 text-[10px] text-gray-300">
-          v0.1 MVP
+          v2.0
         </div>
       </aside>
 

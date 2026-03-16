@@ -1,18 +1,15 @@
 export type DeliveryMethod = '配送' | '配達' | '店頭受取';
 export type PaymentMethod = '現金' | 'PayPay' | '未収';
 export type PaymentStatus = '未払い' | '支払済';
-export type ReservationStatus = '仮予約' | '確定' | 'キャンセル';
-export type OrderStatus = '確定' | '準備中' | '配達予定' | '完了' | 'キャンセル';
+export type ReceptionStatus = '相談中' | '仮予約' | '注文確定' | '準備中' | '受渡し待ち' | '完了' | 'キャンセル';
 export type PricingMode = 'fixed' | 'derived';
-export type StaffRole = 'オーナー' | 'スタッフ' | '配達';
 
-export interface Staff {
+export interface Customer {
   id: string;
   name: string;
-  role: StaffRole;
-  color: string;
   phone: string;
-  is_active: boolean;
+  address: string;
+  memo: string;
   created_at: string;
   updated_at: string;
 }
@@ -48,8 +45,9 @@ export interface SetItem {
   variety?: Variety;
 }
 
-export interface Reservation {
+export interface Reception {
   id: string;
+  customer_id: string;
   customer_name: string;
   phone: string;
   address: string;
@@ -57,44 +55,25 @@ export interface Reservation {
   desired_time: string;
   delivery_method: DeliveryMethod;
   items_note: string;
-  memo: string;
-  status: ReservationStatus;
-  assignee_id: string | null;
-  assignee?: Staff;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface Order {
-  id: string;
-  reservation_id: string | null;
-  customer_name: string;
-  phone: string;
-  address: string;
   has_box: boolean;
   packing_note: string;
-  scheduled_date: string;
-  scheduled_time: string;
-  delivery_method: DeliveryMethod;
   shipping_fee: number;
   payment_method: PaymentMethod;
   payment_status: PaymentStatus;
   subtotal: number;
   total: number;
-  status: OrderStatus;
-  assignee_id: string | null;
-  delivery_staff_id: string | null;
+  status: ReceptionStatus;
+  memo: string;
   google_calendar_event_id: string | null;
-  assignee?: Staff;
-  delivery_staff?: Staff;
   created_at: string;
   updated_at: string;
-  items?: OrderItem[];
+  items?: ReceptionItem[];
+  customer?: Customer;
 }
 
-export interface OrderItem {
+export interface ReceptionItem {
   id: string;
-  order_id: string;
+  reception_id: string;
   variety_id: string | null;
   set_id: string | null;
   quantity: number;
