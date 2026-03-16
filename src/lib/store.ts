@@ -263,13 +263,32 @@ export function updateReception(id: string, data: Partial<{
   status: '相談中' | '仮予約' | '注文確定' | '準備中' | '受渡し待ち' | '完了' | 'キャンセル';
   memo: string;
   google_calendar_event_id: string | null;
+  items: { variety_id?: string | null; set_id?: string | null; quantity: number; unit_price_snapshot: number }[];
 }>): Reception | null {
   const r = receptions.find(r => r.id === id); if (!r) return null;
-  Object.assign(r, data, { updated_at: now() });
+  // items は別処理
+  const { items: newItems, ...rest } = data;
+  Object.assign(r, rest, { updated_at: now() });
   if (data.delivery_method) {
     r.shipping_fee = data.delivery_method === '配送' ? 1500 : 0;
-    r.total = r.subtotal + r.shipping_fee;
   }
+  if (newItems !== undefined) {
+    receptionItems = receptionItems.filter(ri => ri.reception_id !== id);
+    for (const item of newItems) {
+      const line_total = item.quantity * item.unit_price_snapshot;
+      receptionItems.push({
+        id: uuid(),
+        reception_id: id,
+        variety_id: item.variety_id || null,
+        set_id: item.set_id || null,
+        quantity: item.quantity,
+        unit_price_snapshot: item.unit_price_snapshot,
+        line_total,
+      });
+    }
+    r.subtotal = newItems.reduce((sum, i) => sum + i.quantity * i.unit_price_snapshot, 0);
+  }
+  r.total = r.subtotal + r.shipping_fee;
   recalcReserved();
   return getReception(id)!;
 }
