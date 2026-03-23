@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import AdBanner from '@/components/ads/AdBanner';
 import type { Variety, Reception } from '@/types';
 
 export default function Dashboard() {
@@ -121,6 +122,9 @@ export default function Dashboard() {
           </div>
         </section>
       </div>
+
+      {/* Ad Banner */}
+      <AdBanner slot="dashboard-mid" format="auto" />
 
       {/* Variety stock */}
       <section className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
