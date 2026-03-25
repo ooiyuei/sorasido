@@ -79,6 +79,7 @@ export default function AccountingPage() {
 
   const subtotal = items.reduce((sum, it) => sum + it.line_total, 0);
   const grandTotal = subtotal + boxFee + shippingFee - discount;
+  const stripePaymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
 
   const handleSettle = async () => {
     if (!selectedId) return;
@@ -287,6 +288,16 @@ export default function AccountingPage() {
                   >
                     {settling ? '処理中...' : '会計確定'}
                   </button>
+                  {stripePaymentLink && (
+                    <a
+                      href={`${stripePaymentLink}?amount=${grandTotal}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full block text-center bg-[#635bff] text-white py-3 rounded-lg text-sm font-bold hover:bg-[#4f46e5] transition-colors mt-2"
+                    >
+                      Stripe で決済リンクを送る (¥{grandTotal.toLocaleString()})
+                    </a>
+                  )}
                 </div>
               </>
             ) : (
