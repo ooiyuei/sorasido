@@ -13,6 +13,17 @@ const geistSans = Geist({
 export const metadata: Metadata = {
   title: "ソラしどファーム - 予約・注文管理",
   description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+  openGraph: {
+    title: "ソラしどファーム - 予約・注文管理",
+    description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+    type: "website",
+    url: "https://sorasido.vercel.app",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "ソラしどファーム - 予約・注文管理",
+    description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+  },
 };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
@@ -45,6 +56,19 @@ export default function RootLayout({
             </Script>
           </>
         )}
+        <Script
+          id="json-ld-org"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "ソラしどファーム",
+              description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+              url: "https://sorasido.vercel.app",
+            }),
+          }}
+        />
         {ADSENSE_ID && (
           <Script
             src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
