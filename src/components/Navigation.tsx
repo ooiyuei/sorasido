@@ -13,6 +13,7 @@ const navItems = [
   { href: '/sales', label: '売上', icon: '💰' },
   { href: '/varieties', label: '品種', icon: '🍇' },
   { href: '/sets', label: 'セット', icon: '📦' },
+  { href: '/blog', label: 'ブログ', icon: '📝' },
 ];
 
 const mobileItems = [
