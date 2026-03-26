@@ -11,6 +11,7 @@ const geistSans = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://sorasido.vercel.app"),
   title: "ソラしどファーム - 予約・注文管理",
   description: "ぶどう農場の予約・注文・在庫・配達管理システム",
   openGraph: {
