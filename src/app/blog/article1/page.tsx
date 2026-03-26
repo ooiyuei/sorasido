@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "ぶどう農場の予約管理をデジタル化するメリットと方法 | ソラしどファーム",
@@ -21,7 +22,19 @@ export const metadata: Metadata = {
 };
 
 export default function Article1Page() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: "ぶどう農場の予約管理をデジタル化するメリットと方法",
+    description: "紙やExcelによる予約管理の限界とデジタル化のメリットを解説。農場経営をスムーズにするシステム導入の手順と注意点を詳しく紹介します。",
+    datePublished: "2026-03-01",
+    author: { "@type": "Organization", name: "ソラしどファーム" },
+    publisher: { "@type": "Organization", name: "ソラしどファーム", url: "https://sorasido.vercel.app" },
+    url: "https://sorasido.vercel.app/blog/article1",
+  };
   return (
+    <>
+      <Script id="json-ld-article1" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <article className="max-w-3xl mx-auto py-12 px-4">
       <header className="mb-8">
         <time className="text-xs text-gray-400">2026-03-01</time>
@@ -125,5 +138,6 @@ export default function Article1Page() {
         <Link href="/blog" className="text-sm text-violet-600 hover:underline">← ブログ一覧に戻る</Link>
       </footer>
     </article>
+    </>
   );
 }

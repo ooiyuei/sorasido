@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "農産物の在庫管理と配達スケジュール最適化のコツ | ソラしどファーム",
@@ -21,7 +22,19 @@ export const metadata: Metadata = {
 };
 
 export default function Article2Page() {
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: "農産物の在庫管理と配達スケジュール最適化のコツ",
+    description: "収穫量の予測から配達ルートの効率化まで、農場運営の実務に役立つ在庫管理と配達スケジュール最適化のノウハウを解説します。",
+    datePublished: "2026-03-15",
+    author: { "@type": "Organization", name: "ソラしどファーム" },
+    publisher: { "@type": "Organization", name: "ソラしどファーム", url: "https://sorasido.vercel.app" },
+    url: "https://sorasido.vercel.app/blog/article2",
+  };
   return (
+    <>
+      <Script id="json-ld-article2" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
     <article className="max-w-3xl mx-auto py-12 px-4">
       <header className="mb-8">
         <time className="text-xs text-gray-400">2026-03-15</time>
@@ -115,5 +128,6 @@ export default function Article2Page() {
         <Link href="/blog" className="text-sm text-violet-600 hover:underline">← ブログ一覧に戻る</Link>
       </footer>
     </article>
+    </>
   );
 }
