@@ -14,21 +14,33 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://sorasido.vercel.app"),
   title: "ソラしどファーム - 予約・注文管理",
   description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+  alternates: {
+    canonical: "https://sorasido.vercel.app",
+  },
   openGraph: {
     title: "ソラしどファーム - 予約・注文管理",
     description: "ぶどう農場の予約・注文・在庫・配達管理システム",
     type: "website",
     url: "https://sorasido.vercel.app",
+    images: [
+      {
+        url: "https://sorasido.vercel.app/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: "ソラしどファーム | 農場受付管理システム",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "ソラしどファーム - 予約・注文管理",
     description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+    images: ["https://sorasido.vercel.app/opengraph-image"],
   },
 };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID ?? "ca-pub-5036886193853440";
 
 export default function RootLayout({
   children,
