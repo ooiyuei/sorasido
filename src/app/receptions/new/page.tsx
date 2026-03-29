@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { apiFetch } from '@/lib/api-client';
 import type { Variety, ProductSet, Customer, DeliveryMethod, PaymentMethod, ReceptionStatus } from '@/types';
 
 interface ReceptionItemForm {
@@ -35,9 +36,9 @@ export default function NewReceptionPage() {
   const customerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    fetch('/api/varieties').then(r => r.json()).then(setVarieties);
-    fetch('/api/sets').then(r => r.json()).then((s: ProductSet[]) => setSets(s.filter(x => x.is_active)));
-    fetch('/api/customers').then(r => r.json()).then(setCustomers);
+    apiFetch('/api/varieties').then(r => r.json()).then(setVarieties);
+    apiFetch('/api/sets').then(r => r.json()).then((s: ProductSet[]) => setSets(s.filter(x => x.is_active)));
+    apiFetch('/api/customers').then(r => r.json()).then(setCustomers);
   }, []);
 
   useEffect(() => {
@@ -134,7 +135,7 @@ export default function NewReceptionPage() {
         unit_price_snapshot: i.unit_price_snapshot,
       })),
     };
-    const res = await fetch('/api/receptions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    const res = await apiFetch('/api/receptions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     if (res.ok) router.push('/receptions');
   };
 

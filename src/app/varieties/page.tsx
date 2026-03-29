@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import type { Variety } from '@/types';
 
 const defaultForm = { name: '', expected_quantity: 0, unit_price: 0, low_stock_threshold: 0 };
@@ -11,15 +12,15 @@ export default function VarietiesPage() {
   const [form, setForm] = useState(defaultForm);
   const [isAdding, setIsAdding] = useState(false);
 
-  const load = () => fetch('/api/varieties').then(r => r.json()).then(setVarieties);
+  const load = () => apiFetch('/api/varieties').then(r => r.json()).then(setVarieties);
   useEffect(() => { load(); }, []);
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
     if (editId) {
-      await fetch(`/api/varieties/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      await apiFetch(`/api/varieties/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     } else {
-      await fetch('/api/varieties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      await apiFetch('/api/varieties', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     }
     setEditId(null);
     setIsAdding(false);
@@ -29,7 +30,7 @@ export default function VarietiesPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('この品種を削除しますか？')) return;
-    await fetch(`/api/varieties/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/varieties/${id}`, { method: 'DELETE' });
     load();
   };
 

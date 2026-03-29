@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import type { ProductSet, Variety, PricingMode } from '@/types';
 
 const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
@@ -16,17 +17,17 @@ export default function SetsPage() {
   });
 
   const load = () => {
-    fetch('/api/sets').then(r => r.json()).then(setSets);
-    fetch('/api/varieties').then(r => r.json()).then(setVarieties);
+    apiFetch('/api/sets').then(r => r.json()).then(setSets);
+    apiFetch('/api/varieties').then(r => r.json()).then(setVarieties);
   };
   useEffect(() => { load(); }, []);
 
   const handleSave = async () => {
     if (!form.name.trim()) return;
     if (editId) {
-      await fetch(`/api/sets/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      await apiFetch(`/api/sets/${editId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     } else {
-      await fetch('/api/sets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
+      await apiFetch('/api/sets', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) });
     }
     setEditId(null); setIsAdding(false);
     setForm({ name: '', price: 0, pricing_mode: 'fixed', is_active: true, items: [] });
@@ -35,11 +36,11 @@ export default function SetsPage() {
 
   const handleDelete = async (id: string) => {
     if (!confirm('このセットを削除しますか？')) return;
-    await fetch(`/api/sets/${id}`, { method: 'DELETE' }); load();
+    await apiFetch(`/api/sets/${id}`, { method: 'DELETE' }); load();
   };
 
   const handleToggle = async (s: ProductSet) => {
-    await fetch(`/api/sets/${s.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !s.is_active }) }); load();
+    await apiFetch(`/api/sets/${s.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: !s.is_active }) }); load();
   };
 
   const startEdit = (s: ProductSet) => {

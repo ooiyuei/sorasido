@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo } from 'react';
+import { apiFetch } from '@/lib/api-client';
 import type { SalesRecord, PaymentMethod } from '@/types';
 
 export default function SalesPage() {
@@ -13,7 +14,7 @@ export default function SalesPage() {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`/api/sales?month=${month}`)
+    apiFetch(`/api/sales?month=${month}`)
       .then(r => r.json())
       .then(data => { setRecords(data); setLoading(false); })
       .catch(() => setLoading(false));

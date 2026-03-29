@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import { apiFetch } from '@/lib/api-client';
 import type { Reception, ReceptionStatus, DeliveryMethod, PaymentMethod, PaymentStatus, Variety, ProductSet } from '@/types';
 
 const inputCls = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
@@ -24,24 +25,24 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
   const [sets, setSets] = useState<ProductSet[]>([]);
   const [saving, setSaving] = useState(false);
 
-  const reload = () => fetch(`/api/receptions/${id}`).then(r => r.json()).then(setReception);
+  const reload = () => apiFetch(`/api/receptions/${id}`).then(r => r.json()).then(setReception);
 
   useEffect(() => {
     reload();
-    fetch('/api/varieties').then(r => r.json()).then(setVarieties);
-    fetch('/api/sets').then(r => r.json()).then((s: ProductSet[]) => setSets(s.filter(x => x.is_active)));
+    apiFetch('/api/varieties').then(r => r.json()).then(setVarieties);
+    apiFetch('/api/sets').then(r => r.json()).then((s: ProductSet[]) => setSets(s.filter(x => x.is_active)));
   }, [id]);
 
   const update = async (data: Record<string, unknown>) => {
     setSaving(true);
-    await fetch(`/api/receptions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
+    await apiFetch(`/api/receptions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data) });
     await reload();
     setSaving(false);
   };
 
   const handleArchive = async () => {
     if (!confirm('この受付をアーカイブしますか？')) return;
-    await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/receptions/${id}`, { method: 'DELETE' });
     router.push('/receptions');
   };
 

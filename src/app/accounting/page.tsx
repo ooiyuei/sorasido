@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import StatusBadge from '@/components/StatusBadge';
+import { apiFetch } from '@/lib/api-client';
 import type { Reception, ReceptionItem, PaymentMethod } from '@/types';
 
 const inputCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full';
@@ -30,7 +31,7 @@ export default function AccountingPage() {
   const today = new Date().toISOString().split('T')[0];
 
   const loadReceptions = useCallback(() => {
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+    apiFetch('/api/receptions').then(r => r.json()).then(setReceptions);
   }, []);
 
   useEffect(() => { loadReceptions(); }, [loadReceptions]);
@@ -99,7 +100,7 @@ export default function AccountingPage() {
         total: grandTotal,
         payment_method: paymentMethod,
       };
-      const res = await fetch(`/api/receptions/${selectedId}/settle`, {
+      const res = await apiFetch(`/api/receptions/${selectedId}/settle`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

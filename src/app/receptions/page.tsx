@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import { apiFetch } from '@/lib/api-client';
 import type { Reception, ReceptionStatus } from '@/types';
 
 const statusFilters: (ReceptionStatus | '全て')[] = ['全て', '相談中', '受付済み', '会計待ち', '完了', 'キャンセル'];
@@ -16,7 +17,7 @@ export default function ReceptionsPage() {
   const [deliveryFilter, setDeliveryFilter] = useState<'全て' | '配送' | '配達' | '店頭受取'>('全て');
 
   const load = () => {
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+    apiFetch('/api/receptions').then(r => r.json()).then(setReceptions);
   };
   useEffect(() => { load(); }, []);
 
@@ -29,13 +30,13 @@ export default function ReceptionsPage() {
   });
 
   const handleStatusChange = async (id: string, status: ReceptionStatus) => {
-    await fetch(`/api/receptions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    await apiFetch(`/api/receptions/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
     load();
   };
 
   const handleArchive = async (id: string, customerName: string) => {
     if (!confirm(`${customerName} の受付をアーカイブしますか？`)) return;
-    await fetch(`/api/receptions/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/receptions/${id}`, { method: 'DELETE' });
     load();
   };
 

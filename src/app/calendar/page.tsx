@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import { apiFetch } from '@/lib/api-client';
 import type { Reception } from '@/types';
 
 export default function CalendarPage() {
@@ -12,7 +13,7 @@ export default function CalendarPage() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
   });
 
-  useEffect(() => { fetch('/api/receptions').then(r => r.json()).then(setReceptions); }, []);
+  useEffect(() => { apiFetch('/api/receptions').then(r => r.json()).then(setReceptions); }, []);
 
   const [year, month] = currentMonth.split('-').map(Number);
 

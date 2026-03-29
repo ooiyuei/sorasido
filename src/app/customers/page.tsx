@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { apiFetch } from '@/lib/api-client';
 import type { Customer, Reception } from '@/types';
 
 const inputCls = 'border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full';
@@ -16,8 +17,8 @@ export default function CustomersPage() {
   useEffect(() => { load(); }, []);
 
   const load = () => {
-    fetch('/api/customers').then(r => r.json()).then(setCustomers);
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+    apiFetch('/api/customers').then(r => r.json()).then(setCustomers);
+    apiFetch('/api/receptions').then(r => r.json()).then(setReceptions);
   };
 
   const filtered = customers.filter(c => {
@@ -45,13 +46,13 @@ export default function CustomersPage() {
   const handleArchive = async (c: Customer) => {
     if (!confirm(`${c.name} をアーカイブしますか？`)) return;
     setCustomers(prev => prev.filter(x => x.id !== c.id));
-    await fetch(`/api/customers/${c.id}`, { method: 'DELETE' });
+    await apiFetch(`/api/customers/${c.id}`, { method: 'DELETE' });
     load();
   };
 
   const handleAddCustomer = async () => {
     if (!newForm.name.trim()) { alert('名前を入力してください'); return; }
-    const res = await fetch('/api/customers', {
+    const res = await apiFetch('/api/customers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(newForm),

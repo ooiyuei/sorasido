@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
 import AdBanner from '@/components/ads/AdBanner';
+import { apiFetch } from '@/lib/api-client';
 import type { Variety, Reception } from '@/types';
 
 export default function Dashboard() {
@@ -11,8 +12,8 @@ export default function Dashboard() {
   const [receptions, setReceptions] = useState<Reception[]>([]);
 
   useEffect(() => {
-    fetch('/api/varieties').then(r => r.json()).then(setVarieties);
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+    apiFetch('/api/varieties').then(r => r.json()).then(setVarieties);
+    apiFetch('/api/receptions').then(r => r.json()).then(setReceptions);
   }, []);
 
   const today = new Date().toISOString().split('T')[0];

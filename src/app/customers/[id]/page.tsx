@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import { apiFetch } from '@/lib/api-client';
 import type { Customer, Reception } from '@/types';
 
 const inputCls = 'border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full';
@@ -26,7 +27,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
   });
 
   useEffect(() => {
-    fetch(`/api/customers/${id}`).then(r => r.json()).then((c: Customer) => {
+    apiFetch(`/api/customers/${id}`).then(r => r.json()).then((c: Customer) => {
       setCustomer(c);
       setForm({
         name: c.name || '',
@@ -37,7 +38,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
         frequent_items: c.frequent_items || '',
       });
     });
-    fetch('/api/receptions').then(r => r.json()).then(setReceptions);
+    apiFetch('/api/receptions').then(r => r.json()).then(setReceptions);
   }, [id]);
 
   const customerReceptions = receptions
@@ -50,7 +51,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   const saveCustomer = async () => {
     setSaving(true);
-    await fetch(`/api/customers/${id}`, {
+    await apiFetch(`/api/customers/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(form),
@@ -64,7 +65,7 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
       ? `この顧客には進行中の受付が${activeCount}件あります。アーカイブしますか？`
       : 'この顧客をアーカイブしますか？';
     if (!confirm(msg)) return;
-    await fetch(`/api/customers/${id}`, { method: 'DELETE' });
+    await apiFetch(`/api/customers/${id}`, { method: 'DELETE' });
     router.push('/customers');
   };
 
