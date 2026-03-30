@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import Breadcrumb from '@/components/Breadcrumb';
 import type { ProductSet, Variety, PricingMode } from '@/types';
 
 const inputCls = "border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-transparent w-full";
@@ -105,6 +106,7 @@ export default function SetsPage() {
 
   return (
     <div className="space-y-5">
+      <Breadcrumb items={[{ label: 'セット商品管理' }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">セット商品管理</h1>
         <button onClick={startAdd} className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">+ セット追加</button>
@@ -149,7 +151,21 @@ export default function SetsPage() {
             </div>
           </div>
         ))}
-        {sets.length === 0 && <p className="text-gray-400 text-center py-8 text-sm">セットがありません</p>}
+        {sets.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+            <p className="text-3xl mb-3">📦</p>
+            <p className="text-gray-500 font-medium text-sm">セット商品がありません</p>
+            <p className="text-gray-400 text-xs mt-1">
+              複数品種を組み合わせたセット商品を作成して、注文をスムーズに管理しましょう。
+            </p>
+            <button
+              onClick={startAdd}
+              className="inline-block mt-4 bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+            >
+              + 最初のセットを作成
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import Breadcrumb from '@/components/Breadcrumb';
 import { apiFetch } from '@/lib/api-client';
 import type { Reception, ReceptionStatus, DeliveryMethod, PaymentMethod, PaymentStatus, Variety, ProductSet } from '@/types';
 
@@ -123,6 +124,10 @@ export default function ReceptionDetailPage({ params }: { params: Promise<{ id: 
 
   return (
     <div className="space-y-5 max-w-2xl">
+      <Breadcrumb items={[
+        { label: '受付管理', href: '/receptions' },
+        { label: reception?.customer_name_snapshot ?? '受付詳細' },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">受付詳細</h1>
         <div className="flex items-center gap-2">

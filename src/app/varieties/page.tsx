@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import Breadcrumb from '@/components/Breadcrumb';
 import type { Variety } from '@/types';
 
 const defaultForm = { name: '', expected_quantity: 0, unit_price: 0, low_stock_threshold: 0 };
@@ -54,6 +55,7 @@ export default function VarietiesPage() {
 
   return (
     <div className="space-y-5">
+      <Breadcrumb items={[{ label: '品種管理' }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">品種管理</h1>
         <button onClick={startAdd} className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">

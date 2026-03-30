@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo } from 'react';
 import { apiFetch } from '@/lib/api-client';
+import Breadcrumb from '@/components/Breadcrumb';
 import type { SalesRecord, PaymentMethod } from '@/types';
 
 export default function SalesPage() {
@@ -57,6 +58,7 @@ export default function SalesPage() {
 
   return (
     <div className="space-y-5">
+      <Breadcrumb items={[{ label: '売上記録' }]} />
       <h1 className="text-xl font-bold text-gray-900">売上記録</h1>
 
       {/* Month selector */}
@@ -125,7 +127,11 @@ export default function SalesPage() {
             {loading ? (
               <tr><td colSpan={7} className="text-center py-8 text-gray-400 text-sm">読み込み中...</td></tr>
             ) : records.length === 0 ? (
-              <tr><td colSpan={7} className="text-center py-8 text-gray-400 text-sm">売上データがありません</td></tr>
+              <tr><td colSpan={7} className="text-center py-12 text-gray-400">
+                <p className="text-3xl mb-2">💰</p>
+                <p className="text-sm font-medium text-gray-500">{y}年{m}月の売上データがありません</p>
+                <p className="text-xs text-gray-400 mt-1">受付を完了すると、売上データが自動で記録されます。</p>
+              </td></tr>
             ) : (
               records.map(r => (
                 <tr key={r.id} className="hover:bg-gray-50/50 transition-colors">

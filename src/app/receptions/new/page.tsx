@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import Breadcrumb from '@/components/Breadcrumb';
 import { apiFetch } from '@/lib/api-client';
 import type { Variety, ProductSet, Customer, DeliveryMethod, PaymentMethod, ReceptionStatus } from '@/types';
 
@@ -141,6 +142,10 @@ export default function NewReceptionPage() {
 
   return (
     <div className="space-y-5 max-w-2xl">
+      <Breadcrumb items={[
+        { label: '受付管理', href: '/receptions' },
+        { label: '新規受付' },
+      ]} />
       <h1 className="text-xl font-bold text-gray-900">新規受付</h1>
 
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm divide-y divide-gray-100">

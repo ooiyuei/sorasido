@@ -29,7 +29,13 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-xl font-bold text-gray-900">ダッシュボード</h1>
+      {/* Hero header */}
+      <div className="bg-gradient-to-r from-violet-600 to-violet-700 rounded-2xl px-6 py-5 text-white">
+        <h1 className="text-lg font-bold">ソラしどファーム ダッシュボード</h1>
+        <p className="text-violet-200 text-sm mt-1">
+          受付・在庫・売上をひと目で把握。本日の予定を確認しましょう。
+        </p>
+      </div>
 
       {/* Summary cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -52,7 +58,12 @@ export default function Dashboard() {
           </div>
           <div className="p-3">
             {todayReceptions.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">本日の予定はありません</p>
+              <div className="text-center py-6">
+                <p className="text-gray-400 text-sm">本日の予定はありません</p>
+                <Link href="/receptions/new" className="inline-block mt-2 text-xs text-violet-600 hover:text-violet-800 font-medium">
+                  + 新規受付を作成する
+                </Link>
+              </div>
             ) : (
               <div className="space-y-1">
                 {todayReceptions.map(r => (
@@ -92,7 +103,10 @@ export default function Dashboard() {
           </div>
           <div className="p-3">
             {waitingAccounting.length === 0 && unpaidReceptions.length === 0 ? (
-              <p className="text-gray-400 text-sm text-center py-4">対応待ちはありません</p>
+              <div className="text-center py-6">
+                <p className="text-gray-400 text-sm">対応待ちはありません</p>
+                <p className="text-xs text-gray-300 mt-1">会計待ちや未払いの受付はここに表示されます</p>
+              </div>
             ) : (
               <div className="space-y-1">
                 {waitingAccounting.map(r => (

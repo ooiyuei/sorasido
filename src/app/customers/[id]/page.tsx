@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import Breadcrumb from '@/components/Breadcrumb';
 import { apiFetch } from '@/lib/api-client';
 import type { Customer, Reception } from '@/types';
 
@@ -73,6 +74,10 @@ export default function CustomerDetailPage({ params }: { params: Promise<{ id: s
 
   return (
     <div className="space-y-5 max-w-2xl">
+      <Breadcrumb items={[
+        { label: '顧客', href: '/customers' },
+        { label: customer?.name ?? '顧客詳細' },
+      ]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">顧客詳細</h1>
         <div className="flex items-center gap-3">

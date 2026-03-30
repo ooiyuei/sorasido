@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import StatusBadge from '@/components/StatusBadge';
+import Breadcrumb from '@/components/Breadcrumb';
 import { apiFetch } from '@/lib/api-client';
 import type { Reception, ReceptionStatus } from '@/types';
 
@@ -42,6 +43,7 @@ export default function ReceptionsPage() {
 
   return (
     <div className="space-y-4">
+      <Breadcrumb items={[{ label: '受付管理' }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">受付管理</h1>
         <Link href="/receptions/new" className="bg-violet-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors">+ 新規受付</Link>
@@ -166,7 +168,25 @@ export default function ReceptionsPage() {
             </div>
           </div>
         ))}
-        {filtered.length === 0 && <p className="text-gray-400 text-center py-8 text-sm">受付がありません</p>}
+        {filtered.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+            <p className="text-3xl mb-3">📋</p>
+            <p className="text-gray-500 font-medium text-sm">受付がありません</p>
+            <p className="text-gray-400 text-xs mt-1">
+              {filter !== '全て'
+                ? `「${filter}」に該当する受付がありません。フィルターを変更してみてください。`
+                : '新規受付を作成して、注文管理を始めましょう。'}
+            </p>
+            {filter === '全て' && (
+              <Link
+                href="/receptions/new"
+                className="inline-block mt-4 bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+              >
+                + 新規受付を作成
+              </Link>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

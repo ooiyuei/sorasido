@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Breadcrumb from '@/components/Breadcrumb';
 import { apiFetch } from '@/lib/api-client';
 import type { Customer, Reception } from '@/types';
 
@@ -66,6 +67,7 @@ export default function CustomersPage() {
 
   return (
     <div className="space-y-4">
+      <Breadcrumb items={[{ label: '顧客' }]} />
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">顧客</h1>
         <button
@@ -142,7 +144,27 @@ export default function CustomersPage() {
             </div>
           );
         })}
-        {filtered.length === 0 && <p className="text-gray-400 text-center py-8 text-sm">顧客がありません</p>}
+        {filtered.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl border border-gray-200">
+            <p className="text-3xl mb-3">👤</p>
+            <p className="text-gray-500 font-medium text-sm">
+              {search ? '検索結果がありません' : '顧客がありません'}
+            </p>
+            <p className="text-gray-400 text-xs mt-1">
+              {search
+                ? `「${search}」に一致する顧客が見つかりません。検索条件を変更してみてください。`
+                : '「+ 新規顧客」から顧客を登録して、受付管理を始めましょう。'}
+            </p>
+            {!search && (
+              <button
+                onClick={() => setIsAdding(true)}
+                className="inline-block mt-4 bg-violet-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-violet-700 transition-colors"
+              >
+                + 新規顧客を登録
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
