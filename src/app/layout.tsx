@@ -40,7 +40,7 @@ export const metadata: Metadata = {
 };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID ?? "ca-pub-5036886193853440";
+const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
 
 export default function RootLayout({
   children,

@@ -30,11 +30,19 @@ export default function Dashboard() {
   return (
     <div className="space-y-6">
       {/* Hero header */}
-      <div className="bg-gradient-to-r from-violet-600 to-violet-700 rounded-2xl px-6 py-5 text-white">
-        <h1 className="text-lg font-bold">ソラしどファーム ダッシュボード</h1>
-        <p className="text-violet-200 text-sm mt-1">
-          受付・在庫・売上をひと目で把握。本日の予定を確認しましょう。
-        </p>
+      <div className="bg-gradient-to-r from-violet-600 to-violet-700 rounded-2xl px-6 py-5 text-white flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-bold">ソラしどファーム ダッシュボード</h1>
+          <p className="text-violet-200 text-sm mt-1">
+            受付・在庫・売上をひと目で把握。本日の予定を確認しましょう。
+          </p>
+        </div>
+        <Link
+          href="/receptions/new"
+          className="shrink-0 bg-white text-violet-700 font-bold text-sm px-5 py-2.5 rounded-xl hover:bg-violet-50 transition-colors shadow-sm whitespace-nowrap"
+        >
+          ＋ 新規受付
+        </Link>
       </div>
 
       {/* Summary cards */}

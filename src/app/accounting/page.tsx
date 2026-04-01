@@ -289,7 +289,7 @@ export default function AccountingPage() {
                   >
                     {settling ? '処理中...' : '会計確定'}
                   </button>
-                  {stripePaymentLink && (
+                  {stripePaymentLink ? (
                     <a
                       href={`${stripePaymentLink}?amount=${grandTotal}`}
                       target="_blank"
@@ -298,6 +298,13 @@ export default function AccountingPage() {
                     >
                       Stripe で決済リンクを送る (¥{grandTotal.toLocaleString()})
                     </a>
+                  ) : (
+                    <div className="w-full text-center border-2 border-dashed border-[#635bff]/40 rounded-lg py-3 mt-2">
+                      <p className="text-xs text-[#635bff]/70 font-medium">Stripe 決済</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">
+                        NEXT_PUBLIC_STRIPE_PAYMENT_LINK を設定すると有効になります
+                      </p>
+                    </div>
                   )}
                 </div>
               </>
