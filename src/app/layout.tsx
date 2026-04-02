@@ -14,6 +14,18 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://sorasido.vercel.app"),
   title: "ソラしどファーム - 予約・注文管理",
   description: "ぶどう農場の予約・注文・在庫・配達管理システム",
+  keywords: [
+    "ぶどう農場",
+    "農場管理",
+    "予約管理",
+    "注文管理",
+    "在庫管理",
+    "配達管理",
+    "ソラしどファーム",
+    "農業管理システム",
+    "受付管理",
+    "果物農園",
+  ],
   alternates: {
     canonical: "https://sorasido.vercel.app",
   },
@@ -40,7 +52,6 @@ export const metadata: Metadata = {
 };
 
 const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
-const ADSENSE_ID = process.env.NEXT_PUBLIC_ADSENSE_ID;
 
 export default function RootLayout({
   children,
@@ -82,13 +93,31 @@ export default function RootLayout({
             }),
           }}
         />
-        {ADSENSE_ID && (
-          <Script
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_ID}`}
-            strategy="afterInteractive"
-            crossOrigin="anonymous"
-          />
-        )}
+        <Script
+          id="json-ld-app"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "SoftwareApplication",
+              name: "ソラしどファーム 予約・注文管理システム",
+              description: "ぶどう農場向けの予約・注文・在庫・配達管理Webアプリケーション",
+              url: "https://sorasido.vercel.app",
+              applicationCategory: "BusinessApplication",
+              operatingSystem: "Web",
+              offers: {
+                "@type": "Offer",
+                price: "0",
+                priceCurrency: "JPY",
+              },
+            }),
+          }}
+        />
+        <Script
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5036886193853440"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
       </body>
     </html>
   );
