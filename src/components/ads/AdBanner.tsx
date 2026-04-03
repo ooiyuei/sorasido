@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 
+// TODO: Replace with actual AdSense slot ID from Google AdSense dashboard
 export default function AdBanner({ slot = '0000000000', format = 'auto' }: { slot?: string; format?: string }) {
   const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_ID;
   const initialized = useRef(false);

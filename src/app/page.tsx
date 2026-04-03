@@ -200,6 +200,15 @@ export default function Dashboard() {
           </tbody>
         </table>
       </section>
+      {/* Mobile sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 p-3 bg-white/95 backdrop-blur border-t border-gray-100 sm:hidden">
+        <a
+          href="/receptions/new"
+          className="block w-full py-3 bg-violet-600 text-white text-center font-bold rounded-xl hover:bg-violet-700 transition-colors"
+        >
+          新規受付
+        </a>
+      </div>
     </div>
   );
 }
